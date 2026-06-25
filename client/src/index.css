@@ -1,1 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  
+  --color-brand-purple: #7C3AED;
+  --color-brand-purple-light: #A78BFA;
+  --color-brand-blue: #6366F1;
+  --color-brand-blue-light: #818CF8;
+  --color-brand-gold: #F59E0B;
+  --color-brand-navy: #111827;
+  --color-brand-gray: #64748B;
+  --color-brand-border: #E5E7EB;
+  --color-brand-success: #10B981;
+
+  --color-bg-primary: #FAFBFF;
+  --color-bg-secondary: #F5F7FC;
+  --color-bg-card: #FFFFFF;
+  --color-bg-section: #EEF2FF;
+
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
+}
+
+@utility glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+@utility glass-nav {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@utility premium-shadow {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02), 
+              0 1px 3px rgba(0, 0, 0, 0.01),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+@utility premium-shadow-hover {
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.05), 
+              0 1px 3px rgba(0, 0, 0, 0.01),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+@utility text-gradient {
+  background: linear-gradient(135deg, #111827 0%, #374151 50%, #7C3AED 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility text-gradient-purple {
+  background: linear-gradient(135deg, #7C3AED 0%, #6366F1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility bg-premium-mesh {
+  background-color: #FAFBFF;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(238, 242, 255, 0.2) 0px, transparent 50%);
+}
+
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-brand-navy);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar for premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.3);
+}
+
+/* Smooth active focus rings */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--color-brand-purple);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}

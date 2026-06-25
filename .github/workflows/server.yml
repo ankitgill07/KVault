@@ -1,0 +1,49 @@
+name: Deploy Backend
+
+on:
+  push:
+    paths:
+      - "server/**"
+      - ".github/workflows/server.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      SSH_HOST: 18.233.128.174
+      SSH_USER: ubuntu
+      REMOTE_APP_DIR: /home/ubuntu/KVault/server
+      PM2_APP_NAME: kvault
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy Backend
+        run: |
+          ssh ${SSH_USER}@${SSH_HOST} << 'EOF'
+            set -e
+
+            cd /home/ubuntu/KVault/server
+
+            echo "Pull latest code..."
+            git pull origin main
+
+            echo "Install backend dependencies..."
+            cd server
+            npm ci --no-audit --no-fund
+
+            echo "Build backend..."
+            npm run build
+
+            echo "Reload PM2..."
+            pm2 reload kvault
+
+            echo "Backend deployed successfully."
+          EOF
