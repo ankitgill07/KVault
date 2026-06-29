@@ -1,12 +1,8 @@
-// src/schemas/auth.schema.ts
-//
-// All auth input shapes are defined here with Zod.
-// The controller calls these before touching the service.
-
 import { string, z } from "zod";
+import bcrypt from "bcrypt";
+import Otp from "../models/otpModel.js";
+import { type OAuth2Client } from "google-auth-library";
 import { UserRole } from "../types/type.js";
-
-// ─── Reusable field definitions ───────────────────────────────────────────────
 
 const emailField = z
   .string({ error: "Email is required" })
@@ -29,24 +25,19 @@ const nameField = (label: string) =>
     .min(2, `${label} must be at least 2 characters`)
     .max(50, `${label} cannot exceed 50 characters`);
 
-// ─── 1. Register Schema ───────────────────────────────────────────────────────
-
-export const RegisterSchema = z
-  .object({
-    firstName: nameField("First name"),
-    email: emailField,
-    password: passwordField,
-    role: z
-      .enum(["student", "admin"], {
-        error: "Role must be student or admin",
-      })
-      .optional()
-      .default(UserRole.STUDENT),
-  });
+export const RegisterSchema = z.object({
+  name: nameField("Name"),
+  email: emailField,
+  password: passwordField,
+  role: z
+    .enum(["student", "admin"], {
+      error: "Role must be student or admin",
+    })
+    .optional()
+    .default(UserRole.STUDENT),
+});
 
 export type RegisterInput = z.infer<typeof RegisterSchema>;
-
-// ─── 2. Login Schema ──────────────────────────────────────────────────────────
 
 export const LoginSchema = z.object({
   email: emailField,
@@ -57,20 +48,16 @@ export const LoginSchema = z.object({
 
 export type LoginInput = z.infer<typeof LoginSchema>;
 
-// ─── 3. Verify Email OTP Schema ───────────────────────────────────────────────
+const otpField = z
+  .string({ error: "OTP is required" })
+  .length(6, "OTP must be exactly 6 digits");
 
-export const VerifyEmailSchema = z.object({
+export const VerifyOtpSchema = z.object({
   email: emailField,
-  otp: z
-    .string({ error: "OTP is required" })
-    .trim()
-    .length(6, "OTP must be exactly 6 digits")
-    .regex(/^\d{6}$/, "OTP must contain only numbers"),
+  otp: otpField,
 });
 
-export type VerifyEmailInput = z.infer<typeof VerifyEmailSchema>;
-
-// ─── 4. Resend OTP Schema ─────────────────────────────────────────────────────
+export type VerifyOtpInput = z.infer<typeof VerifyOtpSchema>;
 
 export const ResendOtpSchema = z.object({
   email: emailField,
@@ -78,24 +65,8 @@ export const ResendOtpSchema = z.object({
 
 export type ResendOtpInput = z.infer<typeof ResendOtpSchema>;
 
-// ─── 5. Google Login Schema ───────────────────────────────────────────────────
-
-export const GoogleLoginSchema = z.object({
-  idToken: z
-    .string({ error: "Google ID token is required" })
-    .trim()
-    .min(1, "Google ID token cannot be empty"),
+export const GoogleAuthSchema = z.object({
+  idToken: z.string({ error: "ID token is required" }),
 });
 
-export type GoogleLoginInput = z.infer<typeof GoogleLoginSchema>;
-
-// ─── 6. Refresh Token Schema ──────────────────────────────────────────────────
-
-export const RefreshTokenSchema = z.object({
-  refreshToken: z
-    .string({ error: "Refresh token is required" })
-    .trim()
-    .min(1, "Refresh token cannot be empty"),
-});
-
-export type RefreshTokenInput = z.infer<typeof RefreshTokenSchema>;
+export type GoogleAuthInput = z.infer<typeof GoogleAuthSchema>;

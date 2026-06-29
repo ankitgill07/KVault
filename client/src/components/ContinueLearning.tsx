@@ -3,14 +3,26 @@ import { motion } from 'framer-motion';
 import { Play } from 'lucide-react';
 import type { Course } from '../data/courses';
 
+interface CourseWithProgress {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  gradient: string;
+  skills: string[];
+  progress: number;
+  lastAccessed: string;
+  completedLessons: string[];
+}
+
 interface ContinueLearningProps {
-  courses: Course[];
-  onResume: (course: Course) => void;
+  courses: CourseWithProgress[];
+  onResume: (course: CourseWithProgress) => void;
 }
 
 export const ContinueLearning: React.FC<ContinueLearningProps> = ({ courses, onResume }) => {
   // Show only courses with active progress > 0
-  const activeCourses = courses.filter(c => c.progress !== undefined && c.progress > 0);
+  const activeCourses = courses.filter(c => c.progress > 0);
 
   if (activeCourses.length === 0) return null;
 
@@ -37,7 +49,6 @@ export const ContinueLearning: React.FC<ContinueLearningProps> = ({ courses, onR
             whileHover={{ y: -3 }}
             className="bg-white rounded-3xl p-6 border border-brand-border premium-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
           >
-            {/* Left: Thumbnail & Details */}
             <div className="flex items-center gap-4 flex-1">
               <div 
                 className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-[10px] font-black shrink-0"

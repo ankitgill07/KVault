@@ -1,6 +1,4 @@
-
 import rateLimit from 'express-rate-limit';
-
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -13,14 +11,13 @@ export const authLimiter = rateLimit({
   },
 });
 
-/** OTP limiter: resend-otp — 5 requests per 15 minutes */
 export const otpLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many OTP requests. Please wait before trying again.',
+    message: 'Too many OTP requests. Please try again in 1 minute.',
   },
 });

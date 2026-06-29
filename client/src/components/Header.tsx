@@ -3,22 +3,14 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Hexagon, ChevronDown, Search, Heart, ShoppingBag, Bell, BookOpen, GraduationCap, User, LogOut } from 'lucide-react';
 import { CATEGORIES } from '../data/courses';
 import { useUser } from '../context/UserContext';
+import { useAppStateContext } from '../context/AppStateContext';
 
-
-interface HeaderProps {
-  cartCount: number;
-  wishlistCount: number;
-  onSearch?: (query: string) => void;
-}
-
-export const Header: React.FC<HeaderProps> = ({
-  cartCount,
-  wishlistCount,
-  onSearch
-}) => {
+export const Header = () => {
+  const { cartCount, wishlistCount } = useAppStateContext();
   const navigate = useNavigate();
   const location = useLocation();
   const { isSignedIn, user, logout } = useUser();
+
 
   
   const [showMegaMenu, setShowMegaMenu] = useState(false);
@@ -35,7 +27,6 @@ export const Header: React.FC<HeaderProps> = ({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchVal(val);
-    if (onSearch) onSearch(val);
     
     // Auto-navigate to /courses if user starts typing elsewhere
     if (location.pathname !== '/courses' && val.trim() !== '') {
@@ -212,7 +203,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-8 h-8 rounded-full bg-brand-purple/10 border border-brand-purple/20"
                 />
                 <span className="text-xs font-bold text-brand-navy hidden sm:block max-w-[100px] truncate">
-                  {user.name}
+                  {user?.name}
                 </span>
               </button>
               

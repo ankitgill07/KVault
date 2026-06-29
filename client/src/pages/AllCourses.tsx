@@ -2,9 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, BookOpen, Clock, Star, Heart, ShoppingBag, Eye, X, Award, Check } from 'lucide-react';
-import { COURSES, CATEGORIES } from '../data/courses';
-import type { Course } from '../data/courses';
+import { categoryService } from '../services/courseService';
+import { useAllCourses } from '../hooks/useAllCourses';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import type { Course } from '../data/courses';
+
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+}
 
 interface AllCoursesProps {
   cart: string[];
@@ -31,6 +38,13 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
   const [minRating, setMinRating] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<string>('popular');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  
+  // API state
+  const { courses: allCourses, loading: coursesLoading, error: coursesError } = useAllCourses();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [filteredCoursesList, setFilteredCoursesList] = useState<ReturnType<typeof useAllCourses>['courses']>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Sync state if URL query param changes
   useEffect(() => {
@@ -42,6 +56,102 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
     const cat = searchParams.get('category');
     setSelectedCategory(cat);
   }, [searchParams]);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // Filter courses locally when filters change
+  useEffect(() => {
+    filterCourses();
+  }, [selectedCategory, selectedLevel, sortBy, searchQuery, allCourses]);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await categoryService.getAllCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  const filterCourses = async () => {
+    try {
+      setLoading(true);
+      
+      // Wait for courses to load
+      if (coursesLoading) return;
+      
+      if (coursesError) {
+        setError(coursesError);
+        setLoading(false);
+        return;
+      }
+
+      let filtered = [...allCourses];
+
+      // Apply filters
+      if (selectedCategory) {
+        const category = categories.find(cat => cat.slug === selectedCategory || cat.name === selectedCategory);
+        if (category) {
+          filtered = filtered.filter(course => course.category === category.name);
+        } else {
+          // Direct match if category not found in list
+          filtered = filtered.filter(course => 
+            course.category.toLowerCase() === selectedCategory.toLowerCase()
+          );
+        }
+      }
+      
+      if (selectedLevel) {
+        filtered = filtered.filter(course => course.difficulty === selectedLevel);
+      }
+      
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(course => 
+          course.title.toLowerCase().includes(query) ||
+          course.description.toLowerCase().includes(query) ||
+          course.category.toLowerCase().includes(query)
+        );
+      }
+      
+      if (maxPrice) {
+        filtered = filtered.filter(course => course.price <= maxPrice);
+      }
+      
+      if (minRating) {
+        filtered = filtered.filter(course => course.rating >= minRating);
+      }
+
+      // Apply sorting
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'popular':
+            return b.studentsCount - a.studentsCount;
+          case 'new':
+            return 0; // No createdAt in static data
+          case 'rating':
+            return b.rating - a.rating;
+          case 'price-low':
+            return a.price - b.price;
+          case 'price-high':
+            return b.price - a.price;
+          default:
+            return 0;
+        }
+      });
+
+      setFilteredCoursesList(filtered);
+      setError(null);
+    } catch (err) {
+      setError('Failed to filter courses. Please try again later.');
+      console.error('Error filtering courses:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle live search input
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,41 +175,8 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
     setSearchParams({});
   };
 
-  // Filter and sort core logic
-  const filteredCourses = COURSES.filter(course => {
-    const matchesSearch = searchQuery 
-      ? course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        course.skills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        course.instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        course.category.toLowerCase().includes(searchQuery.toLowerCase())
-      : true;
-
-    const matchesCategory = selectedCategory 
-      ? course.category.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-') === selectedCategory.toLowerCase() ||
-        course.category === selectedCategory
-      : true;
-
-    const matchesLevel = selectedLevel 
-      ? course.difficulty.toLowerCase() === selectedLevel.toLowerCase()
-      : true;
-
-    const matchesPrice = maxPrice !== null
-      ? course.price <= maxPrice
-      : true;
-
-    const matchesRating = minRating !== null
-      ? course.rating >= minRating
-      : true;
-
-    return matchesSearch && matchesCategory && matchesLevel && matchesPrice && matchesRating;
-  }).sort((a, b) => {
-    if (sortBy === 'popular') return b.studentsCount - a.studentsCount;
-    if (sortBy === 'new') return b.lastUpdated.localeCompare(a.lastUpdated);
-    if (sortBy === 'rating') return b.rating - a.rating;
-    if (sortBy === 'price-low') return a.price - b.price;
-    if (sortBy === 'price-high') return b.price - a.price;
-    return 0;
-  });
+  // Use filtered courses
+  const filteredCourses = filteredCoursesList;
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 w-full">
@@ -175,21 +252,21 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
                   <span>All Categories</span>
                   {!selectedCategory && <Check className="w-3.5 h-3.5" />}
                 </button>
-                {CATEGORIES.map(cat => (
+                {categories.map(cat => (
                   <button
-                    key={cat.id}
+                    key={cat._id}
                     onClick={() => {
-                      setSelectedCategory(cat.name);
+                      setSelectedCategory(cat.slug);
                       setSearchParams(prev => { prev.set('category', cat.slug); return prev; });
                     }}
                     className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                      selectedCategory === cat.name || selectedCategory === cat.slug
+                      selectedCategory === cat.slug || selectedCategory === cat.name
                         ? 'bg-brand-purple/10 text-brand-purple'
                         : 'hover:bg-bg-secondary text-brand-navy'
                     }`}
                   >
                     <span>{cat.name}</span>
-                    {(selectedCategory === cat.name || selectedCategory === cat.slug) && <Check className="w-3.5 h-3.5" />}
+                    {(selectedCategory === cat.slug || selectedCategory === cat.name) && <Check className="w-3.5 h-3.5" />}
                   </button>
                 ))}
               </div>
@@ -297,12 +374,51 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
           </div>
 
           {/* Courses Grid */}
-          {filteredCourses.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-16 bg-white border border-brand-border rounded-[32px] premium-shadow">
+              <div className="w-16 h-16 bg-brand-purple/10 rounded-full flex items-center justify-center mx-auto text-brand-purple mb-4">
+                <div className="w-8 h-8 border-4 border-brand-purple border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <h3 className="font-extrabold text-lg text-brand-navy">Loading courses...</h3>
+              <p className="text-xs text-brand-gray mt-2 max-w-sm mx-auto font-medium">
+                Please wait while we fetch the latest courses for you.
+              </p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-16 bg-white border border-brand-border rounded-[32px] premium-shadow">
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto text-red-500 mb-4">
+                <X className="w-8 h-8" />
+              </div>
+              <h3 className="font-extrabold text-lg text-brand-navy">Error loading courses</h3>
+              <p className="text-xs text-brand-gray mt-2 max-w-sm mx-auto font-medium">{error}</p>
+              <button
+                onClick={filterCourses}
+                className="mt-6 px-6 py-2.5 bg-brand-purple text-white text-xs font-bold rounded-2xl cursor-pointer hover:opacity-95"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : filteredCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               <AnimatePresence mode="popLayout">
                 {filteredCourses.map((course) => {
                   const isWishlisted = wishlist.includes(course.id);
                   const isAddedToCart = cart.includes(course.id);
+                  
+                  // Map to display format
+                  const courseData = {
+                    ...course,
+                    gradient: course.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    instructor: course.instructor,
+                    instructorAvatar: course.instructorAvatar,
+                    instructorRole: course.instructorRole,
+                    category: course.category,
+                    lessonsCount: course.lessonsCount,
+                    originalPrice: course.originalPrice,
+                    studentsCount: course.studentsCount,
+                    duration: course.duration,
+                    skills: course.skills,
+                  };
                   
                   return (
                     <motion.div
@@ -314,12 +430,31 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
                       transition={{ duration: 0.3 }}
                       className="group bg-white rounded-[32px] border border-brand-border premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-brand-purple/30 relative flex flex-col h-full"
                     >
-                      {/* Gradient / Thumbnail Placeholder with Category tag */}
-                      <div className="h-44 w-full relative flex items-center justify-center text-white p-6 overflow-hidden shrink-0" style={{ background: course.gradient }}>
-                        <div className="absolute inset-0 bg-black/10"></div>
-                        <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-white/20 backdrop-blur rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/10">
-                          {course.category}
-                        </div>
+                      {/* Thumbnail Image */}
+                      <div className="h-44 w-full relative overflow-hidden shrink-0">
+                        {course.thumbnail ? (
+                          <img 
+                            src={course.thumbnail} 
+                            alt={course.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div 
+                            className="w-full h-full flex items-center justify-center text-white p-6"
+                            style={{ background: courseData.gradient }}
+                          >
+                            <div className="absolute inset-0 bg-black/10"></div>
+                            <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-white/20 backdrop-blur rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/10">
+                              {courseData.category}
+                            </div>
+                            <div className="text-center z-10 space-y-1 mt-4">
+                              <p className="text-xs font-bold tracking-widest text-white/70 uppercase">LEARNING PATH</p>
+                              <h4 className="font-extrabold text-base line-clamp-2 px-2">{courseData.title}</h4>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
 
                         {/* Wishlist Heart Toggle */}
                         <button
@@ -335,11 +470,6 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
                         >
                           <Heart className={`w-4.5 h-4.5 ${isWishlisted ? 'fill-red-500' : ''}`} />
                         </button>
-
-                        <div className="text-center z-10 space-y-1 mt-4">
-                          <p className="text-xs font-bold tracking-widest text-white/70 uppercase">LEARNING PATH</p>
-                          <h4 className="font-extrabold text-base line-clamp-2 px-2">{course.title}</h4>
-                        </div>
                       </div>
 
                       {/* Card Content */}
@@ -348,13 +478,13 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
                         {/* Instructor Details */}
                         <div className="flex items-center gap-2.5 mb-4">
                           <img
-                            src={course.instructorAvatar}
-                            alt={course.instructor}
+                            src={courseData.instructorAvatar}
+                            alt={courseData.instructor}
                             className="w-8 h-8 rounded-full border border-brand-purple/20 bg-bg-secondary object-cover"
                           />
                           <div>
-                            <p className="text-xs font-bold text-brand-navy">{course.instructor}</p>
-                            <p className="text-[10px] text-brand-gray font-medium">{course.instructorRole}</p>
+                            <p className="text-xs font-bold text-brand-navy">{courseData.instructor}</p>
+                            <p className="text-[10px] text-brand-gray font-medium">{courseData.instructorRole}</p>
                           </div>
                         </div>
 
@@ -364,21 +494,21 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
                             <span className="text-[9px] font-bold text-brand-gray uppercase tracking-wider block">Rating</span>
                             <span className="text-xs font-extrabold text-brand-navy flex items-center justify-center gap-0.5">
                               <Star className="w-3.5 h-3.5 fill-brand-gold text-brand-gold shrink-0" />
-                              {course.rating}
+                              {course.rating.toFixed(1)}
                             </span>
                           </div>
                           <div className="space-y-0.5 border-x border-brand-border/60">
                             <span className="text-[9px] font-bold text-brand-gray uppercase tracking-wider block">Lessons</span>
                             <span className="text-xs font-extrabold text-brand-navy flex items-center justify-center gap-1">
                               <BookOpen className="w-3.5 h-3.5 text-brand-purple shrink-0" />
-                              {course.lessonsCount}
+                              {courseData.lessonsCount}
                             </span>
                           </div>
                           <div className="space-y-0.5">
                             <span className="text-[9px] font-bold text-brand-gray uppercase tracking-wider block">Duration</span>
                             <span className="text-xs font-extrabold text-brand-navy flex items-center justify-center gap-1">
                               <Clock className="w-3.5 h-3.5 text-brand-blue shrink-0" />
-                              {course.duration.split(' ')[0]}
+                              {courseData.duration ? courseData.duration.split(' ')[0] : 'Self-paced'}
                             </span>
                           </div>
                         </div>
@@ -387,7 +517,7 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
                         <div className="flex items-center justify-between mt-auto">
                           <div className="flex items-baseline gap-1.5">
                             <span className="text-xl font-extrabold text-brand-navy">${course.price}</span>
-                            <span className="text-xs text-brand-gray line-through font-semibold">${course.originalPrice}</span>
+                            <span className="text-xs text-brand-gray line-through font-semibold">${courseData.originalPrice}</span>
                           </div>
 
                           <div className="flex items-center gap-1.5">
@@ -487,8 +617,8 @@ export const AllCourses: React.FC<AllCoursesProps> = ({
                     className="w-full px-4 py-2 border border-brand-border rounded-xl text-xs font-bold text-brand-navy bg-bg-secondary"
                   >
                     <option value="">All Categories</option>
-                    {CATEGORIES.map(cat => (
-                      <option key={cat.id} value={cat.name}>{cat.name}</option>
+                    {categories.map(cat => (
+                      <option key={cat._id} value={cat.slug}>{cat.name}</option>
                     ))}
                   </select>
                 </div>

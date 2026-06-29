@@ -1,8 +1,3 @@
-// src/services/email.service.ts
-//
-// Nodemailer-based email service.
-// All email sending goes through this single service.
-
 import nodemailer, { type Transporter } from "nodemailer";
 
 
@@ -42,7 +37,7 @@ export const sendOtpEmail = async (
   expiresInMinutes: number = 10,
 ): Promise<void> => {
   const mailOptions = {
-    from: process.env.EMAIL_FROM || '"LMS Platform" <noreply@lms.com>',
+    from: process.env.EMAIL_FROM || '"KVault" <noreply@kvault.com>',
     to: toEmail,
     subject: "🔐 Email Verification — Your OTP Code",
     html: buildOtpEmailHtml(fullName, otp, expiresInMinutes),
@@ -63,9 +58,9 @@ export const sendWelcomeEmail = async (
   fullName: string,
 ): Promise<void> => {
   const mailOptions = {
-    from: process.env.EMAIL_FROM || '"LMS Platform" <noreply@lms.com>',
+    from: process.env.EMAIL_FROM || '"KVault" <noreply@kvault.com>',
     to: toEmail,
-    subject: "🎉 Welcome to LMS Platform!",
+    subject: "🎉 Welcome to KVault!",
     html: buildWelcomeEmailHtml(fullName),
   };
 
@@ -99,10 +94,10 @@ const buildOtpEmailHtml = (
           <tr>
             <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:40px 32px;text-align:center;">
               <h1 style="margin:0;color:#fff;font-size:28px;font-weight:700;letter-spacing:-0.5px;">
-                📚 LMS Platform
+                📚 KVault
               </h1>
               <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">
-                Learning Management System
+                Learn Beyond Boundaries
               </p>
             </td>
           </tr>
@@ -142,7 +137,7 @@ const buildOtpEmailHtml = (
           <tr>
             <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;">
-                © ${new Date().getFullYear()} LMS Platform. All rights reserved.
+                © ${new Date().getFullYear()} KVault. All rights reserved.
               </p>
             </td>
           </tr>
@@ -162,9 +157,9 @@ const buildOtpEmailText = (
   otp: string,
   expiresInMinutes: number,
 ): string =>
-  `Hi ${name},\n\nYour LMS email verification code is: ${otp}\n\n` +
+  `Hi ${name},\n\nYour KVault email verification code is: ${otp}\n\n` +
   `This code expires in ${expiresInMinutes} minutes.\n\n` +
-  `Never share this code with anyone.\n\n— LMS Platform Team`;
+  `Never share this code with anyone.\n\n— KVault Team`;
 
 // ─── HTML Template: Welcome ───────────────────────────────────────────────────
 
@@ -181,14 +176,14 @@ const buildWelcomeEmailHtml = (name: string): string => `
           <tr>
             <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);
                        padding:40px 32px;text-align:center;">
-              <h1 style="margin:0;color:#fff;font-size:28px;">🎉 Welcome aboard!</h1>
+              <h1 style="margin:0;color:#fff;font-size:28px;">🎉 Welcome to KVault!</h1>
             </td>
           </tr>
           <tr>
             <td style="padding:40px 32px;">
               <p style="color:#374151;font-size:16px;">Hi <strong>${name}</strong>,</p>
               <p style="color:#6b7280;font-size:15px;line-height:1.6;">
-                Your email has been verified and your LMS account is ready.
+                Your email has been verified and your KVault account is ready.
                 Start exploring courses and level up your skills!
               </p>
             </td>

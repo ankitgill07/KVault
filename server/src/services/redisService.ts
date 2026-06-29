@@ -1,121 +1,107 @@
-// src/services/session.service.ts
-//
-// All Redis session operations are here.
-// Sessions are stored as hashes: session:{sessionId}
-
 import { v4 as uuidv4 } from "uuid";
 import connectRedis from "../db/redisdb.js";
-import { type SessionData, UserRole } from "../types/type.js";
 
 const redis = connectRedis();
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const SESSION_PREFIX = "session:";
-const USER_SESSIONS_PREFIX = "user_sessions:"; // Set of session IDs per user
-const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days in seconds
+const SESSION_TTL = 60 * 60 * 24 * 14; // 14 days
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const OTP_PREFIX = "otp:";
+const OTP_RATE_PREFIX = "otp_rate:";
 
-const sessionKey = (id: string) => `${SESSION_PREFIX}${id}`;
-const userSessionsKey = (userId: string) => `${USER_SESSIONS_PREFIX}${userId}`;
+// ─── Internal Helper ──────────────────────────────────────────────────────────
+
+const sessionKey = (sessionId: string) => `${SESSION_PREFIX}${sessionId}`;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface SessionEntry {
+  userId: string;
+  ipAddress: string | undefined;
+  userAgent: string | undefined;
+  lastActive: string | number;
+}
 
 // ─── Create Session ───────────────────────────────────────────────────────────
 
 export const createSession = async (
   userId: string,
-  email: string,
-  role: UserRole,
   meta?: { ipAddress?: string; userAgent?: string },
 ): Promise<string> => {
   const sessionId = uuidv4();
-  const now = Date.now();
 
-  const sessionData: SessionData = {
+  await redis.hset(sessionKey(sessionId), {
     userId,
-    email,
-    role,
-    createdAt: now,
-    lastActive: now,
-    ipAddress: meta?.ipAddress,
-    userAgent: meta?.userAgent,
-  };
+    ipAddress: meta?.ipAddress ?? "",
+    userAgent: meta?.userAgent ?? "",
+    lastActive: Date.now().toString(),
+  });
 
-  // Store session as a flat hash in Redis
-  await redis.hset(
-    sessionKey(sessionId),
-    sessionData as unknown as Record<string, string>,
-  );
   await redis.expire(sessionKey(sessionId), SESSION_TTL);
-
-  // Track all sessions for this user (so we can revoke them all on logout-all)
-  await redis.sadd(userSessionsKey(userId), sessionId);
-  await redis.expire(userSessionsKey(userId), SESSION_TTL);
 
   return sessionId;
 };
 
-// ─── Get Session ─────────────────────────────────────────────────────────────
+// ─── Get Session ──────────────────────────────────────────────────────────────
 
 export const getSession = async (
   sessionId: string,
-): Promise<SessionData | null> => {
-  const data = await redis.hgetall(sessionKey(sessionId));
+): Promise<SessionEntry | null> => {
+  const key = sessionKey(sessionId);
 
-  if (!data || Object.keys(data).length === 0) return null;
+  const entry = await redis.hgetall(key);
 
-  // Touch last-active timestamp
-  await redis.hset(sessionKey(sessionId), "lastActive", Date.now());
+  if (Object.keys(entry).length === 0) {
+    return null;
+  }
+
+  const lastActive = Date.now();
+
+  await redis.hset(key, "lastActive", lastActive.toString());
+  await redis.expire(key, SESSION_TTL);
 
   return {
-    userId: data.userId,
-    email: data.email,
-    role: data.role as UserRole,
-    createdAt: Number(data.createdAt),
-    lastActive: Number(data.lastActive),
-    ipAddress: data.ipAddress || undefined,
-    userAgent: data.userAgent || undefined,
+    userId: entry.userId as string,
+    ipAddress: entry.ipAddress,
+    userAgent: entry.userAgent,
+    lastActive,
   };
 };
 
-// ─── Delete Session (single logout) ──────────────────────────────────────────
+// ─── Delete Session (logout) ──────────────────────────────────────────────────
 
-export const deleteSession = async (
-  sessionId: string,
-  userId?: string,
-): Promise<void> => {
+export const deleteSession = async (sessionId: string): Promise<void> => {
   await redis.del(sessionKey(sessionId));
-
-  if (userId) {
-    await redis.srem(userSessionsKey(userId), sessionId);
-  }
 };
-
-// ─── Delete All Sessions for a User (logout-all / account deactivation) ──────
 
 export const deleteAllUserSessions = async (userId: string): Promise<void> => {
-  const sessionIds = await redis.smembers(userSessionsKey(userId));
+  const matchedKeys: string[] = [];
+  let cursor = "0";
 
-  if (sessionIds.length > 0) {
-    const pipeline = redis.pipeline();
-    sessionIds.forEach((id: string) => pipeline.del(sessionKey(id)));
-    pipeline.del(userSessionsKey(userId));
-    await pipeline.exec();
+  do {
+    const [nextCursor, keys] = await redis.scan(
+      cursor,
+      "MATCH",
+      `${SESSION_PREFIX}*`,
+      "COUNT",
+      "100",
+    );
+
+    cursor = nextCursor;
+
+    for (const key of keys) {
+      const storedUserId = await redis.hget(key, "userId");
+
+      if (storedUserId === userId) {
+        matchedKeys.push(key);
+      }
+    }
+  } while (cursor !== "0");
+
+  if (matchedKeys.length > 0) {
+    await redis.del(matchedKeys);
   }
 };
-
-// ─── List User's Active Sessions ─────────────────────────────────────────────
-
-export const getUserSessions = async (userId: string): Promise<string[]> => {
-  return redis.smembers(userSessionsKey(userId));
-};
-
-// ─── OTP: Store in Redis (temporary, with short TTL) ─────────────────────────
-// NOTE: We also store OTPs in MongoDB (Otp.model.ts) as the source of truth.
-// Redis provides fast lookups and rate-limiting.
-
-const OTP_PREFIX = "otp:";
-const OTP_RATE_PREFIX = "otp_rate:";
 
 export const setOtpRateLimit = async (
   email: string,

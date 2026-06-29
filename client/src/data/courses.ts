@@ -48,6 +48,7 @@ export interface Course {
   studentsCount: number;
   chapters: Chapter[];
   reviews: Review[];
+  thumbnail?: string;
   progress?: number;
   lastAccessed?: string;
 }

@@ -7,8 +7,8 @@ import { BentoPaths } from '../components/BentoPaths';
 import { CourseTabs } from '../components/CourseTabs';
 import { ContinueLearning } from '../components/ContinueLearning';
 import { Community } from '../components/Community';
-import { COURSES } from '../data/courses';
 import type { Course } from '../data/courses';
+import { useAllCourses } from '../hooks/useAllCourses';
 
 interface HomeProps {
   cart: string[];
@@ -28,24 +28,28 @@ export const Home: React.FC<HomeProps> = ({
   onToggleWishlist,
 }) => {
   const navigate = useNavigate();
-
-  // Create full course list with local progress mapped from courseProgress prop
-  const coursesWithProgress = COURSES.map(course => {
-    const prog = courseProgress[course.id];
-    return {
-      ...course,
-      progress: prog ? prog.progress : undefined,
-      lastAccessed: prog ? prog.lastAccessed : undefined
-    };
-  });
+  const { courses: allCourses } = useAllCourses();
 
   const handleSelectCourse = (course: Course) => {
     navigate(`/course/${course.slug}`);
   };
 
-  const handleResumeCourse = (course: Course) => {
+  const handleResumeCourse = (course: { slug: string }) => {
     navigate(`/learn/${course.slug}`);
   };
+
+  // Create full course list with local progress mapped from courseProgress prop
+  const coursesWithProgress = allCourses
+    .filter(course => enrolledCourses.includes(course.id))
+    .map(course => {
+      const prog = courseProgress[course.id];
+      return {
+        ...course,
+        progress: prog ? prog.progress : 0,
+        lastAccessed: prog ? prog.lastAccessed : '',
+        completedLessons: prog ? prog.completedLessons : [],
+      };
+    });
 
   return (
     <main className="flex-1">
@@ -87,7 +91,6 @@ export const Home: React.FC<HomeProps> = ({
       {/* Main catalog container */}
       <div id="explore-catalog">
         <CourseTabs 
-          courses={COURSES}
           cart={cart}
           wishlist={wishlist}
           onToggleCart={onToggleCart}

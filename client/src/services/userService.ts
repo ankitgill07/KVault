@@ -6,8 +6,6 @@ export interface ProfileResponse {
     id: string;
     email: string;
     firstName: string;
-    lastName: string;
-    fullName: string;
     cart: string[];
     wishlist: string[];
     enrolledCourses: string[];

@@ -1,17 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Hexagon, ArrowLeft, Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Hexagon, ArrowLeft, Sparkles, CheckCircle } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../context/UserContext";
+import { authService } from "../services/authService";
 
 
 export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useUser();
+
+  useEffect(() => {
+    // Show success message when redirected after email verification
+    const state = location.state as { verified?: string } | null;
+    if (state?.verified) {
+      setSuccess(state.verified);
+      // Clear the state so it doesn't show again on re-render
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
 
   const {
@@ -31,10 +44,28 @@ export const Login: React.FC = () => {
     setError("");
     setIsLoading(true);
     try {
-      await login(data.email, data.password);
-      navigate("/");
+      const response = await authService.login({
+        email: data.email,
+        password: data.password,
+      });
+      if (response.success) {
+        const { user: userData } = response.data;
+        // Update user context with the logged-in user
+        // The session cookie is already set by the server
+        // We need to fetch the user data or use what's returned
+        window.location.href = "/";
+      }
     } catch (err: any) {
-      setError(err.message || "Login failed. Please check your credentials.");
+      const errorMessage = err.message || "Login failed. Please check your credentials.";
+      // If email is not verified, redirect to OTP verification page
+      if (errorMessage.includes("verify your email")) {
+        navigate(`/verify-otp?email=${encodeURIComponent(data.email)}`, {
+          state: { from: '/login' },
+          replace: true,
+        });
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -46,11 +77,11 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col lg:flex-row relative w-full">
+    <div className="min-h-screen  bg-bg-primary flex flex-col lg:flex-row relative w-full">
       {/* Back button */}
       <button
         onClick={() => navigate("/")}
-        className="absolute top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white/80 hover:bg-white border border-brand-border rounded-full text-xs font-bold text-brand-navy premium-shadow hover:scale-102 transition-all cursor-pointer"
+        className="absolute top-2 left-10 z-50 flex items-center gap-2 px-4 py-2 bg-white/80 hover:bg-white border border-brand-border rounded-full text-xs font-bold text-brand-navy premium-shadow hover:scale-102 transition-all cursor-pointer"
       >
         <ArrowLeft className="w-3.5 h-3.5 text-brand-purple" />
         <span>Back to Home</span>
@@ -109,6 +140,12 @@ export const Login: React.FC = () => {
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {success && (
+              <div className="p-3.5 bg-green-50 border border-green-200 rounded-[20px] flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+                <p className="text-xs font-bold text-green-600">{success}</p>
+              </div>
+            )}
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-[20px] text-xs font-bold text-red-600">
                 {error}

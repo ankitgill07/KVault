@@ -16,6 +16,9 @@ export interface RegistrationData {
   agreeTerms: boolean;
 }
 
+// Alias for compatibility
+export type FormData = RegistrationData;
+
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   onSubmit,
   isLoading = false,
@@ -36,9 +39,17 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       email: 'gillankit076@gmail.com',
       password: 'Ankit@1234',
       confirmPassword: 'Ankit@1234',
-      agreeTerms: false,
+      agreeTerms: true,
     },
   });
+
+  // Map fullName to name for backend
+  const onSubmitWrapper = (data: RegistrationData) => {
+    onSubmit({
+      ...data,
+      fullName: data.fullName, // Keep as fullName for form, backend will use it as name
+    });
+  };
 
   const passwordWatch = watch('password');
 
@@ -90,7 +101,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const strength = getPasswordStrength();
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmitWrapper)} className="space-y-4">
       {/* Error Message */}
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-[20px] text-xs font-bold text-red-600">

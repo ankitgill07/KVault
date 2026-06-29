@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Clock, BookOpen, Heart, ShoppingBag, Check } from 'lucide-react';
+import { Star, Clock, BookOpen, Heart, ShoppingBag, Check, X } from 'lucide-react';
 import type { Course } from '../data/courses';
+import { useAllCourses } from '../hooks/useAllCourses';
 
 interface CourseTabsProps {
-  courses: Course[];
   cart: string[];
   wishlist: string[];
   onToggleCart: (id: string) => void;
@@ -15,13 +15,13 @@ interface CourseTabsProps {
 type TabType = 'Popular' | 'Trending' | 'New Releases' | 'Development' | 'Design' | 'AI';
 
 export const CourseTabs: React.FC<CourseTabsProps> = ({
-  courses,
   cart,
   wishlist,
   onToggleCart,
   onToggleWishlist,
   onSelectCourse
 }) => {
+  const { courses, loading, error } = useAllCourses();
   const [selectedTab, setSelectedTab] = useState<TabType>('Popular');
 
   const tabs: TabType[] = ['Popular', 'Trending', 'New Releases', 'Development', 'Design', 'AI'];
@@ -49,6 +49,36 @@ export const CourseTabs: React.FC<CourseTabsProps> = ({
   };
 
   const filteredCourses = getFilteredCourses();
+
+  if (loading) {
+    return (
+      <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-brand-purple/10 rounded-full flex items-center justify-center mx-auto text-brand-purple mb-4">
+            <div className="w-8 h-8 border-4 border-brand-purple border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <h3 className="font-extrabold text-lg text-brand-navy">Loading courses...</h3>
+          <p className="text-xs text-brand-gray mt-2 max-w-sm mx-auto font-medium">
+            Please wait while we fetch the latest courses for you.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto text-red-500 mb-4">
+            <X className="w-8 h-8" />
+          </div>
+          <h3 className="font-extrabold text-lg text-brand-navy">Error loading courses</h3>
+          <p className="text-xs text-brand-gray mt-2 max-w-sm mx-auto font-medium">{error}</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
@@ -116,29 +146,42 @@ export const CourseTabs: React.FC<CourseTabsProps> = ({
                 {/* Visual Thumbnail */}
                 <div 
                   onClick={() => onSelectCourse(course)}
-                  className="h-48 w-full relative cursor-pointer flex items-center justify-center p-6 text-white overflow-hidden select-none"
-                  style={{ background: course.gradient }}
+                  className="h-48 w-full relative cursor-pointer overflow-hidden select-none"
                 >
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/5 transition-colors"></div>
+                  {course.thumbnail ? (
+                    <img 
+                      src={course.thumbnail} 
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div 
+                      className="w-full h-full flex items-center justify-center p-6 text-white"
+                      style={{ background: course.gradient }}
+                    >
+                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/5 transition-colors"></div>
+                      <div className="relative text-center space-y-2 z-10">
+                        <span className="text-[10px] uppercase font-bold tracking-widest bg-white/20 backdrop-blur px-2.5 py-1 rounded-full border border-white/10">
+                          {course.category}
+                        </span>
+                        <h3 className="font-extrabold text-lg line-clamp-2 px-2 text-white drop-shadow-sm leading-snug">
+                          {course.title}
+                        </h3>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="relative text-center space-y-2 z-10">
-                    <span className="text-[10px] uppercase font-bold tracking-widest bg-white/20 backdrop-blur px-2.5 py-1 rounded-full border border-white/10">
-                      {course.category}
-                    </span>
-                    <h3 className="font-extrabold text-lg line-clamp-2 px-2 text-white drop-shadow-sm leading-snug">
-                      {course.title}
-                    </h3>
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
 
-                  <div className="absolute bottom-3 left-4 flex gap-1">
+                  <div className="absolute bottom-3 left-4 right-4 flex gap-1">
                     {course.skills.slice(0, 2).map((skill, sIdx) => (
-                      <span key={sIdx} className="text-[9px] font-mono bg-white/25 px-2 py-0.5 rounded border border-white/10 text-white font-bold">
+                      <span key={sIdx} className="text-[9px] font-mono bg-white/25 backdrop-blur px-2 py-0.5 rounded border border-white/10 text-white font-bold">
                         {skill}
                       </span>
                     ))}
                   </div>
 
-                  <span className="absolute top-3 right-4 text-[9px] font-bold uppercase tracking-wider bg-black/25 text-white px-2.5 py-0.5 rounded-full border border-white/5">
+                  <span className="absolute top-3 right-4 text-[9px] font-bold uppercase tracking-wider bg-black/25 backdrop-blur text-white px-2.5 py-0.5 rounded-full border border-white/5">
                     {course.difficulty}
                   </span>
                 </div>

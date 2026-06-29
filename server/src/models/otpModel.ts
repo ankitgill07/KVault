@@ -1,32 +1,28 @@
-
-import mongoose, { Document, Schema, Model } from 'mongoose';
-import { OtpPurpose } from '../types/type.js';
-import type { IOtp } from '../interfaces/interfaces.js';
-
+import mongoose, { Document, Schema, Model } from "mongoose";
+import type { IOtp } from "../interfaces/interfaces.js";
 
 const OtpSchema = new Schema<IOtp>(
   {
     email: {
       type: String,
-      required: [true, 'Email is required'],
-      lowercase: true,
+      required: [true, "Email is required"],
       trim: true,
+      lowercase: true,
       index: true,
     },
     otp: {
       type: String,
-      required: [true, 'OTP is required'],
-      // Stored as bcrypt hash — never plain text
+      required: [true, "OTP is required"],
     },
     purpose: {
       type: String,
-      enum: Object.values(OtpPurpose),
-      default: OtpPurpose.EMAIL_VERIFICATION,
+      enum: ["email_verification", "password_reset"],
+      default: "email_verification",
     },
     attempts: {
       type: Number,
       default: 0,
-      max: [5, 'Maximum verification attempts exceeded'],
+      max: [5, "Maximum OTP attempts exceeded"],
     },
     isUsed: {
       type: Boolean,
@@ -34,22 +30,16 @@ const OtpSchema = new Schema<IOtp>(
     },
     expiresAt: {
       type: Date,
-      required: true,
-      // TTL: MongoDB auto-deletes the document when this date passes
-      index: { expires: 0 },
+      required: [true, "Expiry date is required"],
+      index: { expireAfterSeconds: 0, partialFilterExpression: { isUsed: false } },
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// ─── Compound Index: one active OTP per email+purpose ─────────────────────────
+// Compound index for fast purpose-based lookups
+OtpSchema.index({ email: 1, purpose: 1 });
 
-OtpSchema.index({ email: 1, purpose: 1, isUsed: 1 });
-
-// ─── Model ────────────────────────────────────────────────────────────────────
-
-const Otp: Model<IOtp> = mongoose.model<IOtp>('Otp', OtpSchema);
+const Otp: Model<IOtp> = mongoose.model<IOtp>("Otp", OtpSchema);
 
 export default Otp;

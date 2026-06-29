@@ -11,8 +11,9 @@ export interface User {
 interface UserContextType {
   user: User | null;
   isSignedIn: boolean;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, id?: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -22,65 +23,74 @@ export const UserContext = createContext<UserContextType | undefined>(undefined)
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('kvault_access_token');
-      if (token) {
-        try {
-          const response = await authService.getMe();
-          if (response.success) {
-            const userData = response.data;
-            setUser({
-              id: userData.id,
-              name: userData.fullName || `${userData.firstName} ${userData.lastName}`,
-              email: userData.email
-            });
-            setIsSignedIn(true);
-          }
-        } catch (err) {
-          localStorage.removeItem('kvault_access_token');
-          localStorage.removeItem('kvault_refresh_token');
+
+      try {
+        const response = await authService.getMe();
+        if (response.success && response.data?.user) {
+          const userData = response.data.user;
+          setUser({
+            id: userData.id,
+            name: userData.name,
+            email: userData.email
+          });
+          setIsSignedIn(true);
+        } else {
+          setUser(null);
           setIsSignedIn(false);
         }
+        setLoading(false);
+      } catch (err) {
+        setUser(null);
+        setIsSignedIn(false);
+        setLoading(false);
       }
     };
     initializeAuth();
+
+    const handleAuthFailure = () => {
+      setUser(null);
+      setIsSignedIn(false);
+      setLoading(false);
+    };
+
+    window.addEventListener('auth-failure', handleAuthFailure);
+    return () => window.removeEventListener('auth-failure', handleAuthFailure);
   }, []);
 
   const login = async (email: string, password: string) => {
     const response = await authService.login({ email, password });
     if (response.success) {
-      const { accessToken, refreshToken, user: userData } = response.data;
-      localStorage.setItem('kvault_access_token', accessToken);
-      localStorage.setItem('kvault_refresh_token', refreshToken);
+      const { user: userData } = response.data;
       setUser({
         id: userData.id,
-        name: userData.fullName || `${userData.firstName} ${userData.lastName}`,
+        name: userData.name,
         email: userData.email
       });
       setIsSignedIn(true);
+      setLoading(false);
     }
   };
 
-  const register = async (firstName: string, lastName: string, email: string, password: string) => {
+  const register = async (name: string, email: string, _password?: string) => {
     const response = await authService.register({
-      firstName,
-      lastName,
+      name,
       email,
-      password,
-      confirmPassword: password
+      password: _password || '',
+      confirmPassword: _password || '',
     });
     if (response.success) {
-      const { accessToken, refreshToken, user: userData } = response.data;
-      localStorage.setItem('kvault_access_token', accessToken);
-      localStorage.setItem('kvault_refresh_token', refreshToken);
+      const { user: userData } = response.data;
       setUser({
         id: userData.id,
-        name: userData.fullName || `${userData.firstName} ${userData.lastName}`,
+        name: userData.name,
         email: userData.email
       });
       setIsSignedIn(true);
+      setLoading(false);
     }
   };
 
@@ -90,14 +100,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       // Fail gracefully
     }
-    localStorage.removeItem('kvault_access_token');
-    localStorage.removeItem('kvault_refresh_token');
     setUser(null);
     setIsSignedIn(false);
   };
 
   return (
-    <UserContext.Provider value={{ user, isSignedIn, login, register, logout, setUser }}>
+    <UserContext.Provider value={{ user, isSignedIn, loading, login, register, logout, setUser }}>
       {children}
     </UserContext.Provider>
   );

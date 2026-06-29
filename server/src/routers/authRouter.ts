@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 
 import * as authController from '../controllers/authControler.js';
@@ -7,10 +6,8 @@ import { validateBody } from '../middleware/vaildateMiddleware.js';
 import {
   RegisterSchema,
   LoginSchema,
-  VerifyEmailSchema,
+  VerifyOtpSchema,
   ResendOtpSchema,
-  GoogleLoginSchema,
-  RefreshTokenSchema,
 } from '../schemas/authSchem.js';
 import { authLimiter, otpLimiter } from '../utils/RateLimiter.js';
 
@@ -23,7 +20,6 @@ router.post(
   authController.register
 );
 
-
 router.post(
   '/login',
   authLimiter,
@@ -31,14 +27,19 @@ router.post(
   authController.login
 );
 
-
 router.post(
-  '/verify-email',
+  '/send-otp',
   otpLimiter,
-  validateBody(VerifyEmailSchema),
-  authController.verifyEmail
+  validateBody(ResendOtpSchema),
+  authController.sendOtp
 );
 
+router.post(
+  '/verify-otp',
+  otpLimiter,
+  validateBody(VerifyOtpSchema),
+  authController.verifyOtp
+);
 
 router.post(
   '/resend-otp',
@@ -46,22 +47,6 @@ router.post(
   validateBody(ResendOtpSchema),
   authController.resendOtp
 );
-
-
-router.post(
-  '/google',
-  authLimiter,
-  validateBody(GoogleLoginSchema),
-  authController.googleLogin
-);
-
-
-router.post(
-  '/refresh-token',
-  validateBody(RefreshTokenSchema),
-  authController.refreshToken
-);
-
 
 router.get(
   '/me',
@@ -74,7 +59,6 @@ router.post(
   authenticate,
   authController.logout
 );
-
 
 router.post(
   '/logout-all',

@@ -1,13 +1,8 @@
-// src/middleware/auth.middleware.ts
-
 import { type Response, type NextFunction } from 'express';
-import { verifyAccessToken } from '../utils/jwtUtil.js';
 import { getSession } from '../services/redisService.js';
 import User from '../models/userModel.js';
-import { type AuthenticatedRequest, UserRole } from '../types/type.js';
+import { type AuthenticatedRequest } from '../types/type.js';
 import { sendError } from '../utils/responseUtil.js';
-
-// ─── Authenticate: verify JWT + validate Redis session ────────────────────────
 
 export const authenticate = async (
   req: AuthenticatedRequest,
@@ -15,25 +10,19 @@ export const authenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      sendError(res, 'Access token is missing', 401);
+    const sessionId = req.sessionId;
+    if (!sessionId) {
+      sendError(res, 'Session missing. Please log in again.', 401);
       return;
     }
 
-    const token = authHeader.split(' ')[1] as string;
-    const decoded = verifyAccessToken(token);
-
-    // Validate session still exists in Redis
-    const session = await getSession(decoded.sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       sendError(res, 'Session expired. Please log in again.', 401);
       return;
     }
 
-    // Load user from DB
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(session.userId).select('-password');
     if (!user) {
       sendError(res, 'User not found', 401);
       return;
@@ -45,16 +34,14 @@ export const authenticate = async (
     }
 
     req.user = user;
-    req.sessionId = decoded.sessionId;
+    req.sessionId = sessionId;
     next();
   } catch (error) {
-    sendError(res, 'Invalid or expired access token', 401);
+    sendError(res, 'Invalid or expired session', 401);
   }
 };
 
-// ─── Authorize: restrict to specific roles ────────────────────────────────────
-
-export const authorize = (...roles: UserRole[]) => {
+export const authorize = (...roles: string[]) => {
   return (
     req: AuthenticatedRequest,
     res: Response,
@@ -77,8 +64,6 @@ export const authorize = (...roles: UserRole[]) => {
     next();
   };
 };
-
-// ─── Require Email Verified ───────────────────────────────────────────────────
 
 export const requireEmailVerified = (
   req: AuthenticatedRequest,

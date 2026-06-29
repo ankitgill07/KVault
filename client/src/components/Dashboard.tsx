@@ -26,6 +26,9 @@ interface DashboardProps {
   onNavigateLanding: () => void;
 }
 
+// Alias for compatibility
+export type DashboardData = DashboardProps;
+
 type TabType =
   | "dashboard"
   | "my-courses"

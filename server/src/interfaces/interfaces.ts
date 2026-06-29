@@ -1,12 +1,11 @@
 import mongoose, { Document } from "mongoose";
 import type { Request } from "express";
-import type { AuthProvider, OtpPurpose, UserRole } from "../types/type.js";
+import type { AuthProvider, UserRole } from "../types/type.js";
 
 export interface IUser extends Document {
   // ── Identity ──────────────────────────────────────
-  id : Object
-  firstName: string;
-  lastName: string;
+  id : string
+  name: string;
   email: string;
   password?: string; 
 
@@ -27,8 +26,8 @@ export interface IUser extends Document {
   // ── LMS-Specific ──────────────────────────────────
   enrolledCourses: string[];
   createdCourses: string[]; // For instructors
-  wishlist: string[];
-  cart: string[];
+
+
   courseProgress: any;
 
   // ── Timestamps ────────────────────────────────────
@@ -47,7 +46,7 @@ export interface IUser extends Document {
 export interface IOtp extends Document {
   email: string;
   otp: string;                  // Hashed OTP (never store plain text)
-  purpose: OtpPurpose;
+  purpose: string;
   attempts: number;             // Track failed verification attempts
   isUsed: boolean;              // Prevent OTP reuse
   expiresAt: Date;              // TTL index uses this field

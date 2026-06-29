@@ -7,12 +7,12 @@ import { AuthProvider, UserRole } from "../types/type.js";
 
 const UserSchema = new Schema<IUser>(
   {
-    firstName: {
+    name: {
       type: String,
-      required: [true, "First name is required"],
+      required: [true, "Name is required"],
       trim: true,
-      minlength: [2, "First name must be at least 2 characters"],
-      maxlength: [50, "First name cannot exceed 50 characters"],
+      minlength: [2, "Name must be at least 2 characters"],
+      maxlength: [50, "Name cannot exceed 50 characters"],
     },
     email: {
       type: String,
@@ -81,14 +81,7 @@ const UserSchema = new Schema<IUser>(
       type: [String],
       default: [],
     },
-    wishlist: {
-      type: [String],
-      default: [],
-    },
-    cart: {
-      type: [String],
-      default: [],
-    },
+
     courseProgress: {
       type: Map,
       of: new Schema(
@@ -143,7 +136,7 @@ UserSchema.methods.comparePassword = async function (
 };
 
 UserSchema.methods.getFullName = function (): string {
-  return `${this.firstName}`;
+  return this.name;
 };
 
 // ─── Model ────────────────────────────────────────────────────────────────────

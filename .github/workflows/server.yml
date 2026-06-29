@@ -36,7 +36,6 @@ jobs:
             git pull origin main
 
             echo "Install backend dependencies..."
-            cd server
             npm ci --no-audit --no-fund
 
             echo "Build backend..."
