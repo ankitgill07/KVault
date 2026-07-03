@@ -1,4 +1,6 @@
-import { api } from '../utils/api';
+import { userApis } from '../api/userApi';
+import { cartService } from './cartService';
+import { wishlistService } from './wishlistService';
 
 export interface ProfileResponse {
   success: boolean;
@@ -43,8 +45,7 @@ export interface ProgressData {
 class UserService {
   async getProfile() {
     try {
-      const response = await api.get<ProfileResponse>('/api/user/profile');
-      return response.data;
+      return await userApis.user.getProfile();
     } catch (error: any) {
       throw this.handleError(error);
     }
@@ -52,8 +53,14 @@ class UserService {
 
   async toggleCart(courseId: string) {
     try {
-      const response = await api.post<CartToggleResponse>('/api/user/cart/toggle', { courseId });
-      return response.data;
+      // Use cartService which already handles the logic
+      const cart = await cartService.getCart();
+      
+      if (cartService.isInCart(cart, courseId)) {
+        return await cartService.removeFromCart(courseId);
+      } else {
+        return await cartService.addToCart(courseId);
+      }
     } catch (error: any) {
       throw this.handleError(error);
     }
@@ -61,8 +68,14 @@ class UserService {
 
   async toggleWishlist(courseId: string) {
     try {
-      const response = await api.post<WishlistToggleResponse>('/api/user/wishlist/toggle', { courseId });
-      return response.data;
+      // Use wishlistService for wishlist operations
+      const wishlist = await wishlistService.getWishlist();
+      
+      if (wishlistService.isInWishlist(wishlist, courseId)) {
+        return await userApis.wishlist.removeFromWishlist(courseId);
+      } else {
+        return await userApis.wishlist.addToWishlist(courseId);
+      }
     } catch (error: any) {
       throw this.handleError(error);
     }
@@ -70,8 +83,7 @@ class UserService {
 
   async purchaseCart() {
     try {
-      const response = await api.post<PurchaseResponse>('/api/user/purchase', {});
-      return response.data;
+      return await userApis.cart.checkout();
     } catch (error: any) {
       throw this.handleError(error);
     }
@@ -79,8 +91,26 @@ class UserService {
 
   async updateProgress(data: ProgressData) {
     try {
-      const response = await api.post('/api/user/progress', data);
-      return response.data;
+      // Note: This endpoint might need to be added to the API if it doesn't exist
+      // For now, we'll use the enrollment API to update progress
+      const { courseId, progressVal } = data;
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_BASE_URL}/api/enrollments/progress`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          courseId,
+          progress: progressVal,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update progress');
+      }
+      
+      return await response.json();
     } catch (error: any) {
       throw this.handleError(error);
     }
