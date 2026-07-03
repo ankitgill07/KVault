@@ -35,19 +35,19 @@ export interface WishlistResponse {
 export const wishlistApi = {
   /** GET /api/wishlist — Fetch the current user's wishlist */
   getWishlist: async (): Promise<WishlistResponse> => {
-    const response = await axiosInstance.get("/api/wishlist");
+    const response = await axiosInstance.get("/wishlist");
     return response.data;
   },
 
   /** POST /api/wishlist/items — Add a course to the wishlist */
   addToWishlist: async (courseId: string): Promise<WishlistResponse> => {
-    const response = await axiosInstance.post("/api/wishlist/items", { courseId });
+    const response = await axiosInstance.post("/wishlist/items", { courseId });
     return response.data;
   },
 
   /** DELETE /api/wishlist/items/:courseId — Remove a course from the wishlist */
   removeFromWishlist: async (courseId: string): Promise<WishlistResponse> => {
-    const response = await axiosInstance.delete(`/api/wishlist/items/${courseId}`);
+    const response = await axiosInstance.delete(`/wishlist/items/${courseId}`);
     return response.data;
   },
 };
