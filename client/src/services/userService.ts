@@ -14,6 +14,47 @@ export interface ProfileResponse {
   };
 }
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  profileName?: string;
+  avatar?: string;
+  bio?: string;
+  phoneNumber?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  websiteUrl?: string;
+  role: string;
+  isEmailVerified: boolean;
+  enrolledCourses: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateProfileData {
+  profileName?: string;
+  bio?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  websiteUrl?: string;
+}
+
+export interface Achievement {
+  courseId: string;
+  progress: number;
+  isCompleted: boolean;
+  completedAt?: string;
+  certificateIssued: boolean;
+  certificateUrl?: string;
+}
+
+export interface AchievementsResponse {
+  totalCertificates: number;
+  completedCertificates: number;
+  achievements: Achievement[];
+}
+
 export interface CartToggleResponse {
   success: boolean;
   data: {
@@ -84,6 +125,30 @@ class UserService {
   async purchaseCart() {
     try {
       return await userApis.cart.checkout();
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  async updateProfile(data: UpdateProfileData) {
+    try {
+      return await userApis.user.updateProfile(data);
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  async uploadProfileImage(image: File) {
+    try {
+      return await userApis.user.uploadProfileImage(image);
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  async getAchievements() {
+    try {
+      return await userApis.user.getAchievements();
     } catch (error: any) {
       throw this.handleError(error);
     }
