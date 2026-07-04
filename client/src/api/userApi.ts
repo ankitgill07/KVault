@@ -12,12 +12,31 @@ export const userApi = {
 
   // Update user profile
   updateProfile: async (data: {
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
+    profileName?: string;
     bio?: string;
+    twitterUrl?: string;
+    linkedinUrl?: string;
+    websiteUrl?: string;
   }) => {
     const response = await axiosInstance.put("/user/profile", data);
+    return response.data;
+  },
+
+  // Upload profile image
+  uploadProfileImage: async (image: File) => {
+    const formData = new FormData();
+    formData.append('image', image);
+    const response = await axiosInstance.post("/user/profile/upload-image", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Get user achievements
+  getAchievements: async () => {
+    const response = await axiosInstance.get("/user/achievements");
     return response.data;
   },
 
