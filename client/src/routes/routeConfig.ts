@@ -1,7 +1,7 @@
-export type RouteNameType = 'home'|'courses'|'courseDetail'|'category'|'cart'|'playlist'|'login'|'register'|'myLearning'|'coursePlayer'|'notFound';
+export type RouteNameType = 'home'|'courses'|'courseDetail'|'category'|'cart'|'wishlist'|'login'|'register'|'myLearning'|'coursePlayer'|'notFound';
 export const ROUTES = {
   HOME: '/', COURSES: '/courses', COURSE_DETAIL: '/course/:slug', CATEGORY: '/category/:slug',
-  CART: '/cart', PLAYLIST: '/playlist', LOGIN: '/login', REGISTER: '/sign-up',
+  CART: '/cart', Wishlist: '/wishlist', LOGIN: '/login', REGISTER: '/sign-up',
   MY_LEARNING: '/my-learning', COURSE_PLAYER: '/learn/:slug',
 } as const;
 export const getCoursePath = (s:string) => `/course/${s}`;
