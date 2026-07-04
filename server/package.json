@@ -24,6 +24,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@types/multer": "^2.2.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -33,7 +34,9 @@
     "google-auth-library": "^10.7.0",
     "ioredis": "^5.11.1",
     "mongoose": "^9.7.1",
+    "multer": "^2.2.0",
     "nodemailer": "^9.0.1",
+    "razorpay": "^2.9.6",
     "redis": "^6.0.0",
     "uuid": "^14.0.1",
     "zod": "^4.4.3"
