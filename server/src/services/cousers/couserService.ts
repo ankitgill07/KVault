@@ -2,7 +2,13 @@
 
 import mongoose from "mongoose";
 import Course from "../../models/courseModel.js";
-import type { CourseListResponse, CourseQueryParams, CourseResponse, CreateCourseBody, UpdateCourseBody } from "../../types/courseTypes.js";
+import type {
+  CourseListResponse,
+  CourseQueryParams,
+  CourseResponse,
+  CreateCourseBody,
+  UpdateCourseBody,
+} from "../../types/courseTypes.js";
 import Category from "../../models/categoryModel.js";
 import Module from "../../models/moduleModel.js";
 import Lesson from "../../models/lessonModel.js";
@@ -17,8 +23,11 @@ export const createCourse = async (
   if (!mongoose.Types.ObjectId.isValid(data.category)) {
     throw new Error("Invalid category ID format");
   }
-console.log("Category ID received:", data.category);
-console.log("Is valid ObjectId:", mongoose.Types.ObjectId.isValid(data.category));
+  console.log("Category ID received:", data.category);
+  console.log(
+    "Is valid ObjectId:",
+    mongoose.Types.ObjectId.isValid(data.category),
+  );
   const category = await Category.findById(data.category);
   if (!category) {
     throw new Error("Category not found");
@@ -88,7 +97,7 @@ export const getAllCourses = async (
         .populate("category", "name slug")
         .populate("primaryInstructor", "name email")
         .populate("instructors", "name")
-        .lean<CourseResponse[]>(), 
+        .lean<CourseResponse[]>(),
       Course.countDocuments(filter),
     ]);
 
