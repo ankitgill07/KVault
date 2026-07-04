@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { courseService } from '../services/courseService';
-import type { Course } from '../data/courses';
+import type { Course } from '../api/courseApi';
 
 interface UseAllCoursesReturn {
   courses: Course[];
@@ -33,44 +33,39 @@ export const useAllCourses = (): UseAllCoursesReturn => {
       }
 
       // Fetch all courses from API
-      const response = await courseService.getAllCourses({
+      const fetchedCourses = await courseService.getAllCourses({
         limit: 1000, // Get all courses
         sortBy: 'createdAt',
         sortOrder: 'desc'
       });
-
-      const fetchedCourses = response.courses || [];
       
       // Map API response to Course type
-      const mappedCourses: Course[] = fetchedCourses.map((course: any) => ({
-        id: course._id,
-        slug: course.slug,
-        title: course.title,
-        instructor: course.instructor?.name || 'Unknown Instructor',
-        instructorRole: course.instructorRole || 'Instructor',
-        instructorAvatar: course.instructorAvatar || 'https://ui-avatars.com/api/?name=Instructor&background=667eea&color=fff',
-        instructorBio: '',
-        instructorSocials: {},
-        category: course.category?.name || 'General',
-        rating: course.rating || 0,
-        reviewsCount: course.enrollmentCount || 0,
-        duration: course.duration ? `${course.duration} hours` : 'Self-paced',
-        lessonsCount: course.lessonsCount || course.totalLessons || 0,
-        price: course.price,
-        originalPrice: course.originalPrice || Math.round(course.price * 1.5),
-        description: course.description,
-        gradient: course.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        difficulty: course.level || 'Beginner',
-        skills: course.skills || [],
-        requirements: [],
-        whatYouWillLearn: [],
-        lastUpdated: course.updatedAt || '',
-        language: 'English',
-        studentsCount: course.studentsCount || course.enrollmentCount || 0,
-        thumbnail: course.thumbnail || course.image || '',
-        chapters: [],
-        reviews: [],
-      }));
+const mappedCourses: Course[] = fetchedCourses.map((course: any) => ({
+  _id: course._id,
+  title: course.title,
+  description: course.description,
+  slug: course.slug,
+  level: course.level || "Beginner",
+  language: course.language || "English",
+  duration: course.duration || 0,
+  totalLessons: course.totalLessons || course.lessonsCount || 0,
+  totalModules: course.totalModules || 0,
+  price: course.price || 0,
+  discountPrice: course.discountPrice,
+  previewVideo: course.previewVideo || "",
+  thumbnail: course.thumbnail || course.image || "",
+  requirements: course.requirements || [],
+  learningOutcomes: course.learningOutcomes || [],
+  rating: course.rating || 0,
+  enrollmentCount: course.enrollmentCount || 0,
+  reviewCount: course.reviewCount || 0,
+  category: course.category,
+  instructors: course.instructors || [],
+  instructorAvatar:
+    course.instructorAvatar ||
+    "https://ui-avatars.com/api/?name=Instructor&background=667eea&color=fff",
+  primaryInstructor: course.primaryInstructor,
+}));
 
       // Update cache
       coursesCache = mappedCourses;

@@ -1,5 +1,10 @@
 {
   "compilerOptions": {
+
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    // ...rest of your existing options
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
@@ -21,5 +26,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src", "src/models"]
 }
