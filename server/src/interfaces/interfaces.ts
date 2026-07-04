@@ -10,9 +10,13 @@ export interface IUser extends Document {
   password?: string; 
 
 
+  profileName?: string;
   avatar?: string | undefined;
   bio?: string;
   phoneNumber?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  websiteUrl?: string;
 
   // ── Role & Status ─────────────────────────────────
   role: UserRole;
