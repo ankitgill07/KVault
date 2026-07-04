@@ -1,11 +1,19 @@
 import React, { createContext, useState, useEffect, type ReactNode } from 'react';
 import { authService } from '../services/authService';
+import { userService } from '../services/userService';
 
 export interface User {
   id?: string;
   name: string;
   email: string;
   location?: string;
+  profileName?: string;
+  avatar?: string;
+  bio?: string;
+  phoneNumber?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  websiteUrl?: string;
 }
 
 interface UserContextType {
@@ -16,6 +24,8 @@ interface UserContextType {
   register: (name: string, email: string, id?: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
+  updateUserProfile: (profileData: Partial<User>) => Promise<void>;
+  fetchUserProfile: () => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -104,8 +114,49 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsSignedIn(false);
   };
 
+  const updateUserProfile = async (profileData: Partial<User>) => {
+    try {
+      await userService.updateProfile({
+        profileName: profileData.profileName,
+        bio: profileData.bio,
+        twitterUrl: profileData.twitterUrl,
+        linkedinUrl: profileData.linkedinUrl,
+        websiteUrl: profileData.websiteUrl,
+      });
+      
+      // Update local user state
+      setUser(prev => prev ? { ...prev, ...profileData } : null);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      throw error;
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await userService.getProfile();
+      if (response.success && response.data?.user) {
+        const userData = response.data.user;
+        setUser({
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          profileName: userData.profileName,
+          avatar: userData.avatar,
+          bio: userData.bio,
+          phoneNumber: userData.phoneNumber,
+          twitterUrl: userData.twitterUrl,
+          linkedinUrl: userData.linkedinUrl,
+          websiteUrl: userData.websiteUrl,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ user, isSignedIn, loading, login, register, logout, setUser }}>
+    <UserContext.Provider value={{ user, isSignedIn, loading, login, register, logout, setUser, updateUserProfile, fetchUserProfile }}>
       {children}
     </UserContext.Provider>
   );
