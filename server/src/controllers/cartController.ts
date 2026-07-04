@@ -1,24 +1,13 @@
-// src/controllers/cart.controller.ts
-//
-// Thin HTTP layer — every method does exactly three things:
-//   1. Pull validated data from req.body / req.params
-//   2. Call the matching cart service function
-//   3. Send a success response  (or let the error flow to errorHandler)
-//
-// No business logic lives here.
-
 import { type Request, type Response, type NextFunction } from "express";
 import {
   getCartByUserId,
   addToCart as addToCartService,
   removeFromCart as removeFromCartService,
   clearCart as clearCartService,
-  checkout as checkoutService,
 } from "../services/cartService.js";
+import { createPaymentOrder, getCartTotalInPaise, generateReceiptId } from "../services/paymentService.js";
 import { sendSuccess, sendError } from "../utils/responseUtil.js";
 import { type AuthenticatedRequest } from "../types/type.js";
-import { validateBody } from "../middleware/vaildateMiddleware.js";
-import { AddToCartSchema } from "../schemas/cartWishlistSchemas.js";
 import type { RemoveParams } from "../interfaces/cartWishlistInterfaces.js";
 
 
@@ -110,8 +99,46 @@ export const checkout = async (
       return;
     }
 
-    const result = await checkoutService(userId);
-    sendSuccess(res, "Checkout successful! Courses enrolled.", result);
+    // Get cart
+    const cart = await getCartByUserId(userId);
+    
+    if (!cart || cart.items.length === 0) {
+      sendError(res, "Your cart is empty", 400);
+      return;
+    }
+
+    // Calculate amount in paise
+    const amountInPaise = getCartTotalInPaise(cart);
+    
+    if (amountInPaise <= 0) {
+      sendError(res, "Invalid cart amount", 400);
+      return;
+    }
+
+    // Generate receipt ID
+    const receiptId = generateReceiptId(`cart_${userId}`);
+
+    // Extract course IDs
+    const courseIds = cart.items
+      .map((item) => (item.course as any)?._id?.toString() || item.course.toString())
+      .filter(Boolean);
+
+    // Create payment order
+    const order = await createPaymentOrder({
+      amount: amountInPaise,
+      currency: "INR",
+      receipt: receiptId,
+      notes: {
+        userId,
+        cartId: cart._id.toString(),
+        courseIds,
+      },
+    });
+
+    sendSuccess(res, "Payment order created. Please complete payment.", { 
+      order,
+      cart 
+    });
   } catch (error: any) {
     console.error("[checkout]", error);
     sendError(res, error.message || "Checkout failed", error.statusCode || 400);
