@@ -1,34 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { courseService } from '../services/courseService';
 import CourseCard from '../components/CourseCard';
-import { categoryService } from '../services/courseService';
+import { categoryService } from '../services/categoryService';
+import type { Category, Course } from '../api/courseApi';
 
-interface Course {
-  _id: string;
-  title: string;
-  slug: string;
-  thumbnail: string;
-  description: string;
-  price: number;
-  discountPrice?: number;
-  rating: number;
-  enrollmentCount: number;
-  level: string;
-  duration: number;
-  totalLessons: number;
-  instructor?: {
-    name: string;
-  };
-  category?: {
-    name: string;
-  };
-}
 
-interface Category {
-  _id: string;
-  name: string;
-  slug: string;
-}
 
 interface CoursesPageProps {
   cart: string[];
@@ -78,8 +54,10 @@ const CoursesPage: React.FC<CoursesPageProps> = ({ cart, wishlist, onToggleCart,
       if (selectedLevel) params.level = selectedLevel;
       if (searchQuery) params.search = searchQuery;
 
-      const data = await courseService.getAllCourses(params);
-      setCourses(data.courses || []);
+      const data= await courseService.getAllCourses(params);
+
+
+      setCourses(data);
       setError(null);
     } catch (err) {
       setError('Failed to fetch courses. Please try again later.');
