@@ -32,6 +32,12 @@ const UserSchema = new Schema<IUser>(
     },
 
     // ── Profile ─────────────────────────────────────
+    profileName: {
+      type: String,
+      trim: true,
+      maxlength: [50, "Profile name cannot exceed 50 characters"],
+      default: null,
+    },
     avatar: {
       type: String,
       default: null,
@@ -44,6 +50,41 @@ const UserSchema = new Schema<IUser>(
     phoneNumber: {
       type: String,
       default: null,
+    },
+
+    // ── Social Links ────────────────────────────────
+    twitterUrl: {
+      type: String,
+      default: null,
+      validate: {
+        validator: function(v: string | null) {
+          if (!v) return true;
+          return /^https?:\/\/(www\.)?(twitter|x)\.com\/.+$/.test(v);
+        },
+        message: 'Please provide a valid Twitter/X URL'
+      }
+    },
+    linkedinUrl: {
+      type: String,
+      default: null,
+      validate: {
+        validator: function(v: string | null) {
+          if (!v) return true;
+          return /^https?:\/\/(www\.)?linkedin\.com\/.+$/.test(v);
+        },
+        message: 'Please provide a valid LinkedIn URL'
+      }
+    },
+    websiteUrl: {
+      type: String,
+      default: null,
+      validate: {
+        validator: function(v: string | null) {
+          if (!v) return true;
+          return /^https?:\/\/.+/.test(v);
+        },
+        message: 'Please provide a valid website URL'
+      }
     },
 
     // ── Role & Status ───────────────────────────────
