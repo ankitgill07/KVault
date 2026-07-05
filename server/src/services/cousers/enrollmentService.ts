@@ -2,6 +2,7 @@
 import Course from "../../models/courseModel.js";
 import Enrollment from "../../models/enrollmentModel.js";
 import type { CreateEnrollmentBody, UpdateEnrollmentBody } from "../../types/courseTypes.js";
+import { EnrollmentStatus } from "../../interfaces/courseInterfaces.js";
 
 export const createEnrollment = async (
   data: CreateEnrollmentBody,
@@ -95,7 +96,14 @@ export const updateEnrollment = async (
 export const updateEnrollmentProgress = async (
   studentId: string,
   courseId: string,
-  progressData: { lessonId?: string; moduleId?: string; progress?: number },
+  progressData: { 
+    lessonId?: string; 
+    moduleId?: string; 
+    progress?: number;
+    timeSpent?: number;
+    currentTime?: number;
+    duration?: number;
+  },
 ): Promise<any> => {
   try {
     const enrollment = await Enrollment.findOne({
@@ -118,10 +126,119 @@ export const updateEnrollmentProgress = async (
       enrollment.progress = progressData.progress;
     }
 
+    // Update time spent (accumulate)
+    if (progressData.timeSpent && progressData.timeSpent > 0) {
+      enrollment.totalTimeSpent = (enrollment.totalTimeSpent || 0) + progressData.timeSpent;
+    }
+
+    // Update last accessed time with current timestamp
+    enrollment.lastAccessedAt = new Date();
+
+    // Auto-complete if progress is 100%
+    if (enrollment.progress === 100 && !enrollment.isCompleted) {
+      enrollment.isCompleted = true;
+      enrollment.completedAt = new Date();
+      enrollment.status = EnrollmentStatus.COMPLETED;
+    }
+
+    await enrollment.save();
+    
+    // Populate and return
+    return await Enrollment.findById(enrollment._id)
+      .populate("course", "title thumbnail")
+      .populate("student", "name email");
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateVideoProgress = async (
+  studentId: string,
+  courseId: string,
+  lessonId: string,
+  currentTime: number,
+  duration: number,
+): Promise<any> => {
+  try {
+    const enrollment = await Enrollment.findOne({
+      student: studentId,
+      course: courseId,
+    });
+
+    if (!enrollment) {
+      throw new Error("Enrollment not found");
+    }
+
+    // Calculate time spent since last update (throttled to 5 seconds)
+    const timeSpent = 5; // 5 seconds per update
+
+    // Update current lesson
+    enrollment.currentLesson = lessonId as any;
+    
+    // Accumulate time spent
+    enrollment.totalTimeSpent = (enrollment.totalTimeSpent || 0) + timeSpent;
+    
+    // Update last accessed time
     enrollment.lastAccessedAt = new Date();
 
     await enrollment.save();
-    return enrollment;
+    
+    return {
+      success: true,
+      totalTimeSpent: enrollment.totalTimeSpent,
+      lastAccessedAt: enrollment.lastAccessedAt,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const generateCertificate = async (
+  studentId: string,
+  courseId: string,
+): Promise<any> => {
+  try {
+    const enrollment = await Enrollment.findOne({
+      student: studentId,
+      course: courseId,
+    }).populate("course", "title thumbnail").populate("student", "name email");
+
+    if (!enrollment) {
+      throw new Error("Enrollment not found");
+    }
+
+    if (!enrollment.isCompleted) {
+      throw new Error("Course not completed yet");
+    }
+
+    if (enrollment.certificateIssued) {
+      return {
+        alreadyIssued: true,
+        certificateUrl: enrollment.certificateUrl,
+        issuedAt: enrollment.certificateIssuedAt,
+      };
+    }
+
+    // Generate certificate URL (in production, this would generate a PDF)
+    const certificateId = `CERT-${Date.now()}-${studentId.slice(-6)}`;
+    const certificateUrl = `/api/certificates/${certificateId}`;
+
+    // Update enrollment with certificate info
+    enrollment.certificateIssued = true;
+    enrollment.certificateUrl = certificateUrl;
+    enrollment.certificateIssuedAt = new Date();
+
+    await enrollment.save();
+
+    return {
+      success: true,
+      certificateId,
+      certificateUrl,
+      issuedAt: enrollment.certificateIssuedAt,
+      course: enrollment.course,
+      student: enrollment.student,
+      completedAt: enrollment.completedAt,
+    };
   } catch (error) {
     throw error;
   }
