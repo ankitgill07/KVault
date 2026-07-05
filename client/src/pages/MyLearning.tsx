@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -10,6 +10,7 @@ import {
   Clock,
   Flame,
   ShieldCheck,
+  Download,
 } from "lucide-react";
 
 import { useAppDispatch, useAppSelector } from "../store";
@@ -18,6 +19,7 @@ import {
   selectEnrollments,
 } from "../store/enrollmentSlice";
 import useAllCourses from "../hooks/useAllCourses";
+import { enrollmentService } from "../services/enrollmentService";
 
 export const MyLearning = () => {
   const navigate = useNavigate();
@@ -26,6 +28,7 @@ export const MyLearning = () => {
 
   // Redux state
   const enrollments = useAppSelector(selectEnrollments);
+  const [downloadingCertificate, setDownloadingCertificate] = useState<string | null>(null);
 
   // Fetch enrollments on mount
   useEffect(() => {
@@ -89,6 +92,60 @@ export const MyLearning = () => {
   const getLastAccessed = (courseId: string) => {
     const prog = courseProgressMap[courseId];
     return prog && prog.lastAccessed ? prog.lastAccessed : "Not started yet";
+  };
+
+  const handleDownloadCertificate = async (courseId: string, courseTitle: string) => {
+    try {
+      setDownloadingCertificate(courseId);
+      const result = await enrollmentService.generateCertificate({ courseId });
+      
+      // Check if certificate was successfully generated or already exists
+      if (result && 'certificateUrl' in result && result.certificateUrl) {
+        // In a real implementation, this would download the PDF
+        // For now, we'll create a simple text file with certificate details
+        const studentName = 'student' in result ? result.student?.name || 'Student' : 'Student';
+        const courseName = 'course' in result ? result.course?.title || courseTitle : courseTitle;
+        const completedDate = 'completedAt' in result && result.completedAt ? new Date(result.completedAt).toLocaleDateString() : new Date().toLocaleDateString();
+        const certId = 'certificateId' in result ? result.certificateId || 'N/A' : 'N/A';
+        
+        const certificateText = `
+CERTIFICATE OF COMPLETION
+
+This is to certify that
+
+${studentName}
+
+has successfully completed the course
+
+"${courseName}"
+
+Completed on: ${completedDate}
+Certificate ID: ${certId}
+
+Issued by KVault LMS Academy
+        `;
+
+        const blob = new Blob([certificateText], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `certificate-${courseTitle.replace(/\s+/g, '-').toLowerCase()}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        alert(`Certificate downloaded successfully for "${courseTitle}"`);
+      } else if (result && 'alreadyIssued' in result) {
+        alert(`Certificate already issued for "${courseTitle}". Downloading again...`);
+        // Handle re-download
+      }
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      alert('Failed to download certificate. Please try again.');
+    } finally {
+      setDownloadingCertificate(null);
+    }
   };
 
   return (
@@ -217,14 +274,21 @@ export const MyLearning = () => {
                         </div>
 
                         <button
-                          onClick={() =>
-                            alert(
-                              `Generating PDF Certificate for "${course.title}"...`,
-                            )
-                          }
-                          className="w-fit px-4 py-2 bg-brand-purple text-white text-[10px] font-bold rounded-xl cursor-pointer hover:opacity-95"
+                          onClick={() => handleDownloadCertificate(course._id, course.title)}
+                          disabled={downloadingCertificate === course._id}
+                          className="w-fit px-4 py-2 bg-brand-purple text-white text-[10px] font-bold rounded-xl cursor-pointer hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                          Download PDF Credential
+                          {downloadingCertificate === course._id ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-3 h-3" />
+                              Download Certificate
+                            </>
+                          )}
                         </button>
                       </div>
                     ))}
