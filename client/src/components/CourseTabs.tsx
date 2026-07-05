@@ -26,32 +26,7 @@ export const CourseTabs: React.FC = () => {
   const { courses, loading, error } = useAllCourses();
   const [selectedTab, setSelectedTab] = useState("Popular");
 
-  const popularCourses = [...courses]
-    .filter((course) => course.rating >= 4.5)
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 6);
 
-  const trendingCourses = [...courses]
-    .sort((a, b) => {
-      if (b.enrollmentCount !== a.enrollmentCount) {
-        return b.enrollmentCount - a.enrollmentCount;
-      }
-
-      return b.rating - a.rating;
-    })
-    .slice(0, 6);
-  const bestSellerCourses = [...courses]
-    .sort((a, b) => b.enrollmentCount - a.enrollmentCount)
-    .slice(0, 6);
-
-  const recommendedCourses = [...courses]
-    .sort((a, b) => {
-      const scoreA = a.rating * 2 + a.enrollmentCount / 100;
-      const scoreB = b.rating * 2 + b.enrollmentCount / 100;
-
-      return scoreB - scoreA;
-    })
-    .slice(0, 6);
 
   if (loading) {
     return (
@@ -90,16 +65,15 @@ export const CourseTabs: React.FC = () => {
   }
 
   return (
-    <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
-      {/* Banner */}
-      <WelcomeBanner />
-      <CourseSection title="⭐ Recommended" courses={recommendedCourses} />
-
-      <CourseSection title="🔥 Popular Courses" courses={popularCourses} />
-
-      <CourseSection title="📈 Trending Now" courses={trendingCourses} />
-
-      <CourseSection title="🏆 Best Sellers" courses={bestSellerCourses} />
-    </section>
+    <div className="p-4 md:px-8 max-w-7xl mx-auto w-full">
+      <div>
+        <h1 className="text-xl sm:text-2xl  tracking-tight leading-tight font-bold">
+          Welcome back, Ankit{" "}
+        </h1>
+      </div>
+      <section className="py-20">
+        <CourseSection title="Discover Courses" courses={courses} />
+      </section>
+    </div>
   );
 };
