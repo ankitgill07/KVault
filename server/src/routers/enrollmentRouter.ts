@@ -7,5 +7,7 @@ router.get("/my-enrollments", enrollmentController.getMyEnrollments);
 router.get("/{:id}", enrollmentController.getEnrollmentById);
 router.put("/{:id}", enrollmentController.updateEnrollment);
 router.post("/progress", enrollmentController.updateProgress);
+router.post("/video-progress", enrollmentController.updateVideoProgress);
+router.post("/certificate/generate", enrollmentController.generateCertificate);
 
 export default router
