@@ -36,6 +36,20 @@ export const addToCart = async (
     throw new AppError('Course not found', 404);
   }
 
+  // Check if user is already enrolled in this course
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const isEnrolled = user.enrolledCourses?.some(
+    (enrolledId) => enrolledId.toString() === courseId
+  );
+
+  if (isEnrolled) {
+    throw new AppError('You have already purchased this course', 400);
+  }
+
   let cart = await Cart.findOne({ user: toObjectId(userId) });
 
   if (!cart) {
