@@ -36,6 +36,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const input = req.body as LoginInput;
     const result = await loginUserService(input, getRequestMeta(req));
+    
+    // Set session cookie with all details and expiry
+    res.cookie('sessionId', result.sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 14 * 1000, // 14 days
+    });
+    
     sendSuccess(res, 'Login successful', { sessionId: result.sessionId, user: result.user });
   } catch (error) { handleError(error, res, 'login'); }
 };
