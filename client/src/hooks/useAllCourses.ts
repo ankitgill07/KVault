@@ -61,6 +61,7 @@ const mappedCourses: Course[] = fetchedCourses.map((course: any) => ({
   reviewCount: course.reviewCount || 0,
   category: course.category,
   instructors: course.instructors || [],
+  updatedAt : course.updatedAt,
   instructorAvatar:
     course.instructorAvatar ||
     "https://ui-avatars.com/api/?name=Instructor&background=667eea&color=fff",
