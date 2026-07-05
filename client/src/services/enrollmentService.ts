@@ -72,4 +72,30 @@ export const enrollmentService = {
       throw error;
     }
   },
+
+  /**
+   * Update video progress (throttled)
+   */
+  updateVideoProgress: async (data: any) => {
+    try {
+      const response = await enrollmentApi.updateVideoProgress(data);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating video progress:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Generate certificate for completed course
+   */
+  generateCertificate: async (data: any) => {
+    try {
+      const response = await enrollmentApi.generateCertificate(data);
+      return response.data;
+    } catch (error) {
+      console.error("Error generating certificate:", error);
+      throw error;
+    }
+  },
 };
