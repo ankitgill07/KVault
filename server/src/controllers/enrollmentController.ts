@@ -78,7 +78,7 @@ export const updateEnrollment = async (req: AuthenticatedRequest, res: Response)
 export const updateProgress = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const studentId = req.user?.id as string;
-    const { courseId, lessonId, moduleId, progress } = req.body as any;
+    const { courseId, lessonId, moduleId, progress, timeSpent } = req.body as any;
 
     if (!studentId || !courseId) {
       sendError(res, "Student ID and Course ID are required", 400);
@@ -89,11 +89,48 @@ export const updateProgress = async (req: AuthenticatedRequest, res: Response): 
       lessonId,
       moduleId,
       progress,
+      timeSpent,
     });
 
     sendSuccess(res, "Progress updated successfully", enrollment);
   } catch (error: any) {
     console.error("[updateProgress]", error);
     sendError(res, error.message || "Failed to update progress", 400);
+  }
+};
+
+export const updateVideoProgress = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const studentId = req.user?.id as string;
+    const { courseId, lessonId, currentTime, duration } = req.body as any;
+
+    if (!studentId || !courseId || !lessonId) {
+      sendError(res, "Student ID, Course ID, and Lesson ID are required", 400);
+      return;
+    }
+
+    const result = await enrollmentSerivce.updateVideoProgress(studentId, courseId, lessonId, currentTime, duration);
+    sendSuccess(res, "Video progress updated", result);
+  } catch (error: any) {
+    console.error("[updateVideoProgress]", error);
+    sendError(res, error.message || "Failed to update video progress", 400);
+  }
+};
+
+export const generateCertificate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const studentId = req.user?.id as string;
+    const { courseId } = req.body as any;
+
+    if (!studentId || !courseId) {
+      sendError(res, "Student ID and Course ID are required", 400);
+      return;
+    }
+
+    const certificate = await enrollmentSerivce.generateCertificate(studentId, courseId);
+    sendSuccess(res, "Certificate generated successfully", certificate);
+  } catch (error: any) {
+    console.error("[generateCertificate]", error);
+    sendError(res, error.message || "Failed to generate certificate", 400);
   }
 };
