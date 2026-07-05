@@ -11,21 +11,22 @@ export interface Lesson {
   _id: string;
   title: string;
   duration: number;
+  description?: string;
   isPreview?: boolean;
   order: number;
-  videoUrl : string
+  videoUrl: string;
 }
 
 export interface LessonResponse {
   success: boolean;
   message: string;
-  data: Lesson
+  data: Lesson;
 }
 
 export interface LessonsListResponse {
   success: boolean;
   message: string;
-  data: Lesson[]
+  data: Lesson[];
 }
 
 export interface CreateLessonData {
@@ -72,7 +73,9 @@ export const lessonApi = {
    * GET /lessons/{moduleId}/lessons
    * Fetch all lessons for a specific module
    */
-  getLessonsByModule: async (moduleId: string): Promise<LessonsListResponse> => {
+  getLessonsByModule: async (
+    moduleId: string,
+  ): Promise<LessonsListResponse> => {
     const response = await axiosInstance.get(`/lessons/${moduleId}/lessons`);
     return response.data;
   },
@@ -99,7 +102,10 @@ export const lessonApi = {
    * PUT /lessons/{id}
    * Update an existing lesson (Admin/Instructor only)
    */
-  updateLesson: async (id: string, data: UpdateLessonData): Promise<LessonResponse> => {
+  updateLesson: async (
+    id: string,
+    data: UpdateLessonData,
+  ): Promise<LessonResponse> => {
     const response = await axiosInstance.put(`/lessons/${id}`, data);
     return response.data;
   },
@@ -108,7 +114,9 @@ export const lessonApi = {
    * DELETE /lessons/{id}
    * Delete a lesson (Admin/Instructor only)
    */
-  deleteLesson: async (id: string): Promise<{ success: boolean; message: string }> => {
+  deleteLesson: async (
+    id: string,
+  ): Promise<{ success: boolean; message: string }> => {
     const response = await axiosInstance.delete(`/lessons/${id}`);
     return response.data;
   },

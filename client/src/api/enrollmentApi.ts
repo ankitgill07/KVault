@@ -17,6 +17,8 @@ export interface Enrollment {
   transactionId?: string;
   progress: number;
   completedLessons: string[];
+  currentLesson?: string;
+  currentModule?: string;
   lastAccessed?: string;
   enrolledAt: string;
   courseDetails?: {
@@ -54,6 +56,7 @@ export interface UpdateProgressData {
   lessonId?: string;
   moduleId?: string;
   progress?: number;
+  timeSpent?: number;
 }
 
 export interface ProgressResponse {
@@ -63,6 +66,52 @@ export interface ProgressResponse {
     progress: number;
     completedLessons: string[];
     lastAccessed: string;
+    totalTimeSpent: number;
+  };
+}
+
+export interface VideoProgressData {
+  courseId: string;
+  lessonId: string;
+  currentTime: number;
+  duration: number;
+}
+
+export interface VideoProgressResponse {
+  success: boolean;
+  message: string;
+  data: {
+    totalTimeSpent: number;
+    lastAccessedAt: string;
+  };
+}
+
+export interface CertificateData {
+  courseId: string;
+}
+
+export interface CertificateResponse {
+  success: boolean;
+  message: string;
+  data: {
+    certificateId: string;
+    certificateUrl: string;
+    issuedAt: string;
+    course: {
+      _id: string;
+      title: string;
+      thumbnail: string;
+    };
+    student: {
+      _id: string;
+      name: string;
+      email: string;
+    };
+    completedAt: string;
+  } | {
+    alreadyIssued: boolean;
+    certificateUrl: string;
+    issuedAt: string;
   };
 }
 
@@ -118,6 +167,28 @@ export const enrollmentApi = {
     data: UpdateProgressData,
   ): Promise<ProgressResponse> => {
     const response = await axiosInstance.post("/enrollments/progress", data);
+    return response.data;
+  },
+
+  /**
+   * POST /enrollments/video-progress
+   * Update video progress (throttled)
+   */
+  updateVideoProgress: async (
+    data: VideoProgressData,
+  ): Promise<VideoProgressResponse> => {
+    const response = await axiosInstance.post("/enrollments/video-progress", data);
+    return response.data;
+  },
+
+  /**
+   * POST /enrollments/certificate/generate
+   * Generate certificate for completed course
+   */
+  generateCertificate: async (
+    data: CertificateData,
+  ): Promise<CertificateResponse> => {
+    const response = await axiosInstance.post("/enrollments/certificate/generate", data);
     return response.data;
   },
 };

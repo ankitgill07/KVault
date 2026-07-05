@@ -30,6 +30,7 @@ export interface Course {
   instructors?: any[];
   instructorAvatar: string;
   primaryInstructor?: any;
+  updatedAt : number
 }
 
 export interface Category {
