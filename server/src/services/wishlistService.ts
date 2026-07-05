@@ -6,6 +6,7 @@
 import mongoose from 'mongoose';
 import Wishlist from '../models/wishlistModel.js';
 import Course from '../models/courseModel.js';
+import User from '../models/userModel.js';
 import { AppError } from '../utils/appError.js';
 import type { IWishlist } from '../interfaces/cartWishlistInterfaces.js';
 
@@ -41,6 +42,20 @@ export const addToWishlist = async (
   const course = await Course.findById(objectId);
   if (!course) {
     throw new AppError('Course not found', 404);
+  }
+
+  // Check if user is already enrolled in this course
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+const isEnrolled = user.enrolledCourses?.some(
+  (enrolledId) => enrolledId === courseId
+);
+
+  if (isEnrolled) {
+    throw new AppError('You have already purchased this course', 400);
   }
 
   let wishlist = await Wishlist.findOne({ user: toObjectId(userId) });
