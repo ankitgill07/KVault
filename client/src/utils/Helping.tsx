@@ -1,33 +1,83 @@
 import { Star } from "lucide-react";
 import type { InvoiceData } from "../api/paymentApi";
+import { cn } from "../lib/utils";
 
-export const renderStars = (rating : number) => {
-  const ratings = Math.min(5, Math.max(0, rating || 0));
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = ratings - fullStars >= 0.5;
+interface RatingStarsProps {
+  rating: number;
+  className?: string;
+  size?: number;
+}
+export function RatingStars({
+  rating,
+  className,
+  size = 14,
+}: RatingStarsProps) {
+  const full = Math.floor(rating);
+  const hasHalf = rating - full >= 0.25 && rating - full < 0.75;
+  const total = 5;
 
-  return Array.from({ length: 5 }, (_, i) => {
-    if (i < fullStars) {
-      return <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />;
-    }
-
-    if (i === fullStars && hasHalfStar) {
-      return (
-        <span key={i} className="relative inline-block w-4 h-4">
-          <Star className="absolute inset-0 w-4 h-4 text-gray-300" />
-          <span className="absolute inset-0 w-1/2 overflow-hidden">
-            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+  return (
+    <div
+      className={cn("flex items-center gap-0.5", className)}
+      role="img"
+      aria-label={`Rated ${rating} out of 5`}
+    >
+      {Array.from({ length: total }).map((_, i) => {
+        const isFull = i < full;
+        const isHalf = i === full && hasHalf;
+        return (
+          <span key={i} className="relative inline-flex">
+            <Star
+              size={size}
+              className="text-gray-300"
+              strokeWidth={1.5}
+              aria-hidden
+            />
+            {(isFull || isHalf) && (
+              <span
+                className="absolute inset-0 overflow-hidden"
+                style={{ width: isHalf ? "50%" : "100%" }}
+                aria-hidden
+              >
+                <Star
+                  size={size}
+                  className="text-amber-400"
+                  strokeWidth={1.5}
+                  fill="currentColor"
+                />
+              </span>
+            )}
           </span>
+        );
+      })}
+    </div>
+  );
+}
+
+interface PriceProps {
+  currentPrice: number;
+  originalPrice?: number;
+  className?: string;
+}
+
+export function Price({ currentPrice, originalPrice, className }: PriceProps) {
+  const hasDiscount = originalPrice && originalPrice > currentPrice;
+  return (
+    <div className={cn("flex items-baseline gap-2", className)}>
+      <span className="text-lg font-extrabold text-neutral-900">
+        ${currentPrice.toFixed(2)}
+      </span>
+      {hasDiscount && (
+        <span className="text-sm font-medium text-neutral-400 line-through">
+          ${originalPrice!.toFixed(2)}
         </span>
-      );
-    }
+      )}
+    </div>
+  );
+}
 
-    return <Star key={i} className="w-4 h-4 text-gray-300" />;
-  });
-};
-
- export const generateInvoiceHTML = (data: InvoiceData): string => {
-    return `
+export const generateInvoiceHTML = (data: InvoiceData): string => {
+  return `
       <!DOCTYPE html>
       <html>
       <head>
@@ -149,21 +199,25 @@ export const renderStars = (rating : number) => {
                 <div class="info-label">Email</div>
                 <div class="info-value">${data.student.email}</div>
               </div>
-              ${data.student.phone ? `
+              ${
+                data.student.phone
+                  ? `
               <div class="info-item">
                 <div class="info-label">Phone</div>
                 <div class="info-value">${data.student.phone}</div>
               </div>
-              ` : ''}
+              `
+                  : ""
+              }
             </div>
             <div>
               <div class="info-item">
                 <div class="info-label">Invoice Date</div>
-                <div class="info-value">${new Date(data.invoiceDate).toLocaleDateString("en-IN", { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div class="info-value">${new Date(data.invoiceDate).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</div>
               </div>
               <div class="info-item">
                 <div class="info-label">Enrollment Date</div>
-                <div class="info-value">${new Date(data.enrollmentDate).toLocaleDateString("en-IN", { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div class="info-value">${new Date(data.enrollmentDate).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</div>
               </div>
             </div>
           </div>
@@ -176,18 +230,26 @@ export const renderStars = (rating : number) => {
               <div class="info-label">Course Name</div>
               <div class="info-value" style="font-size: 16px; font-weight: bold;">${data.course.title}</div>
             </div>
-            ${data.course.description ? `
+            ${
+              data.course.description
+                ? `
             <div class="info-item">
               <div class="info-label">Description</div>
               <div class="info-value">${data.course.description}</div>
             </div>
-            ` : ''}
-            ${data.instructor ? `
+            `
+                : ""
+            }
+            ${
+              data.instructor
+                ? `
             <div class="info-item">
               <div class="info-label">Instructor</div>
               <div class="info-value">${data.instructor.name}</div>
             </div>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
         </div>
 
@@ -202,11 +264,11 @@ export const renderStars = (rating : number) => {
                 </div>
                 <div class="info-item">
                   <div class="info-label">Transaction ID</div>
-                  <div class="info-value" style="font-family: monospace;">${data.payment.transactionId || 'N/A'}</div>
+                  <div class="info-value" style="font-family: monospace;">${data.payment.transactionId || "N/A"}</div>
                 </div>
                 <div class="info-item">
                   <div class="info-label">Payment Date</div>
-                  <div class="info-value">${new Date(data.payment.paymentDate).toLocaleDateString("en-IN", { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                  <div class="info-value">${new Date(data.payment.paymentDate).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</div>
                 </div>
               </div>
               <div>
@@ -235,4 +297,19 @@ export const renderStars = (rating : number) => {
       </body>
       </html>
     `;
-  };
+};
+
+
+export function formatDateTime(timestamp : number) {
+  if (!timestamp) return "";
+
+  const date = new Date(timestamp);
+
+  const day = date.getUTCDate();
+  const month = date.toLocaleString("en-US", {
+    month: "long",
+    timeZone: "UTC",
+  });
+
+  return `${day} ${month}`;
+}
