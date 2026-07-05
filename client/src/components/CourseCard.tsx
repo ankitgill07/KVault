@@ -5,19 +5,10 @@ import type { Course } from "../api/courseApi";
 import { Heart, Loader2, ShoppingCart, Star } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
-import {
-  fetchCart,
-  addToCart as addToCartAction,
-  removeFromCart as removeFromCartAction,
-  selectIsInCart,
-} from "../store/cartSlice";
-import {
-  fetchWishlist,
-  addToWishlist as addToWishlistAction,
-  removeFromWishlist as removeFromWishlistAction,
-  selectIsInWishlist,
-} from "../store/wishlistSlice";
-import { renderStars } from "../utils/Helping";
+
+import { Price, RatingStars } from "../utils/Helping";
+import { cn } from "../lib/utils";
+import { CourseHoverCard } from "./CourseHoverCard";
 
 interface CourseCardProps {
   course: Course;
@@ -25,14 +16,8 @@ interface CourseCardProps {
 
 const CourseCard = ({ course }: CourseCardProps) => {
   const navigate = useNavigate();
-  const dispatch = useDispatch<AppDispatch>();
 
-  const inCart = useSelector(selectIsInCart(course._id));
-  const inWishlist = useSelector(selectIsInWishlist(course._id));
-
-  // Separate loading flags so buttons don't get stuck disabled
-  const [cartLoading, setCartLoading] = useState(false);
-  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -50,140 +35,82 @@ const CourseCard = ({ course }: CourseCardProps) => {
     return `${mins}m`;
   };
 
-  useEffect(() => {
-    dispatch(fetchCart());
-    dispatch(fetchWishlist());
-  }, [dispatch]);
-
-  const handleWishlistClick = async () => {
-    if (wishlistLoading) return;
-    setWishlistLoading(true);
-    try {
-      if (inWishlist) {
-        await dispatch(removeFromWishlistAction(course._id)).unwrap();
-      } else {
-        await dispatch(addToWishlistAction(course._id)).unwrap();
-      }
-    } catch (err) {
-      console.error("Wishlist action failed:", err);
-    } finally {
-      setWishlistLoading(false);
-    }
-  };
-
-  const handleCartClick = async () => {
-    if (cartLoading) return;
-    setCartLoading(true);
-    try {
-      if (inCart) {
-        await dispatch(removeFromCartAction(course._id)).unwrap();
-      } else {
-        await dispatch(addToCartAction(course._id)).unwrap();
-      }
-    } catch (err) {
-      console.error("Cart action failed:", err);
-    } finally {
-      setCartLoading(false);
-    }
-  };
+  
 
   return (
-    <div>
-      <AnimatePresence mode="popLayout">
-        <motion.div
-          key={course._id}
-          layout
-          whileHover="hover"
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="group bg-white rounded-2xl border cursor-pointer border-gray-200 overflow-hidden transition-all duration-300 hover:border-violet-200 hover:shadow-xl"
-        >
-          <div>
-            <div className="relative  overflow-hidden rounded-t-2xl bg-gray-100">
-              <img
-                src={course.thumbnail}
-                alt={course.title}
-                className="w-full h-full object-contain transition-transform duration-400 ease-out group-hover:scale-110"
-              />
-            </div>
+    <div
+      className={cn("group relative")}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+      
+    >
+      <article
+        tabIndex={0}
+        className={cn(
+          "flex h-full w-full flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white",
+          "shadow-sm transition-all duration-300 ease-out",
+          "group-hover:-translate-y-1 group-hover:shadow-xl group-hover:ring-1 group-hover:ring-violet-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
+        )}
+      >
+        {/* Thumbnail — fixed aspect keeps width/height consistent across cards */}
+        <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-neutral-100">
+          <img
+            src={course.thumbnail}
+            alt={course.title}
+            loading="lazy"
+            className={cn(
+              "h-full w-full object-cover transition-transform duration-500 ease-out",
+              "group-hover:scale-105",
+            )}
+          />
+  
+        </div>
 
-            <div className="p-5">
-              <h3 className="text-lg font-bold text-gray-900 leading-tight line-clamp-2 mb-2">
-                {course.title}
-              </h3>
+        {/* Body — flex-1 with fixed-height zones so every card matches */}
+        <div className="flex flex-1 flex-col gap-2 p-4">
+          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-snug text-neutral-900">
+            {course.title}
+          </h3>
 
+          <p className="line-clamp-1 text-xs text-neutral-500">
+         Ankit 
+          </p>
 
-              <div className="flex items-center gap-3 mb-4 text-sm">
-                <div className="flex items-center gap-0.5">
-                  {renderStars(course.rating)}
-                </div>
-                <span className="font-semibold text-gray-900">
-                  {course.rating.toFixed(1)}
-                </span>
-                <span className="text-gray-500">
-                  ({course.reviewCount.toLocaleString()} Reviews)
-                </span>
-              </div>
-
-              <div className="flex items-baseline gap-2 mb-5">
-                <span className="text-2xl font-bold text-gray-900">
-                  ${course.discountPrice}
-                </span>
-                <span className="text-sm text-gray-400 line-through">
-                  ${course.price}
-                </span>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCartClick}
-                  disabled={cartLoading}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-xl font-semibold text-sm transition-all duration-300 hover:bg-purple-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-500/25 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                  aria-label={inCart ? "Remove from cart" : "Add to cart"}
-                >
-                  {cartLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <ShoppingCart className="w-4 h-4" />
-                  )}
-                  <span>
-                    {cartLoading
-                      ? inCart
-                        ? "Removing..."
-                        : "Adding..."
-                      : inCart
-                        ? "Remove from Cart"
-                        : "Add to Cart"}
-                  </span>
-                </button>
-                <button
-                  onClick={handleWishlistClick}
-                  disabled={wishlistLoading}
-                  className={`px-4 py-3 rounded-xl font-semibold text-sm border-2 transition-all duration-300 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${
-                    inWishlist
-                      ? "border-purple-500 bg-purple-50 text-purple-600"
-                      : "border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600"
-                  }`}
-                  aria-label={
-                    inWishlist ? "Remove from wishlist" : "Add to wishlist"
-                  }
-                >
-                  {wishlistLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Heart
-                      className={`w-4 h-4 transition-transform duration-300 ${
-                        inWishlist ? "fill-current scale-110" : ""
-                      }`}
-                    />
-                  )}
-                </button>
-              </div>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-bold text-amber-600">
+              {course.rating.toFixed(1)}
+            </span>
+            <RatingStars rating={course.rating} size={12} />
+      
+            <span className="text-xs text-neutral-400">
+              ({course.reviewCount})
+            </span>
           </div>
-        </motion.div>
-      </AnimatePresence>
+
+          <Price
+            currentPrice={course.discountPrice as number}
+            originalPrice={course.price}
+            className="pt-1"
+          />
+        </div>
+      </article>
+
+      {hovered && (
+        <div
+          className={cn(
+            "absolute top-0 z-30 hidden overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-2xl",
+            "md:block",
+            "left-full ml-2 w-[22rem]",
+            "animate-[hoverFadeIn_0.2s_ease-out]",
+          )}
+          role="complementary"
+        >
+          <CourseHoverCard course={course} />
+        </div>
+      )}
     </div>
   );
 };
