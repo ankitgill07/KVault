@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   Hexagon,
@@ -220,13 +220,13 @@ export const Header = () => {
 
           <div className="relative group">
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/profile")}
               className="flex items-center gap-2 px-3 py-2 hover:bg-bg-secondary rounded-full transition-colors cursor-pointer"
             >
               <img
-                src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.email as string}`}
+                src={`${import.meta.env.VITE_BACKEND_BASE_URL}${user?.avatar}`}
                 alt="avatar"
-                className="w-8 h-8 rounded-full bg-brand-purple/10 border border-brand-purple/20"
+                className="w-8 h-8 rounded-full object-cover bg-brand-purple/10 border border-brand-purple/20"
               />
               <span className="text-xs font-bold text-brand-navy hidden sm:block max-w-[100px] truncate">
                 {user?.name}
