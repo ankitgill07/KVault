@@ -9,7 +9,7 @@ import { CategoryPage } from "../pages/CategoryPage";
 import { Cart } from "../pages/Cart";
 import { Wishlist } from "../pages/Wishlist";
 import { MyLearning } from "../pages/MyLearning";
-import { CoursePlayer } from "../pages/CoursePlayer";
+import { CoursePlayerPage } from "../pages/CoursePlayer";
 
 import { Login } from "../components/Login";
 import { Register } from "../components/Register";
@@ -39,11 +39,11 @@ export const appRoutes = [
         path: ROUTES.COURSE_PLAYER,
         element: (
           <ProtectedRoute>
-            <CoursePlayer />
+            <CoursePlayerPage />
           </ProtectedRoute>
         ),
       },
-      {
+            {
         path: "/profile",
         element: (
           <ProtectedRoute>
