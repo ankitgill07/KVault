@@ -3,6 +3,7 @@ import type { IUser } from '../interfaces/interfaces.js';
 
 export enum UserRole {
   STUDENT = 'student',
+  INSTRUCTOR = 'instructor',
   ADMIN = 'admin',
 }
 

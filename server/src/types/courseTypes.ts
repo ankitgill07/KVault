@@ -1,6 +1,9 @@
 import type { IUser } from "../interfaces/interfaces.js";
-import { CourseLevel, CourseStatus, LessonContentType } from "../interfaces/courseInterfaces.js";
-import type mongoose from "mongoose";
+import {
+  CourseLevel,
+  CourseStatus,
+  LessonContentType,
+} from "../interfaces/courseInterfaces.js";
 
 // ─── Category Types ───────────────────────────────────────────────────────────
 
@@ -39,6 +42,7 @@ export interface CategoryResponse {
 
 export interface CreateCourseBody {
   title: string;
+  slug: string;
   subtitle?: string;
   description: string;
   shortDescription?: string;
@@ -46,10 +50,10 @@ export interface CreateCourseBody {
   tags?: string[];
   level: CourseLevel;
   language?: string;
-  thumbnail: string;
+  thumbnailUrl?: string;
+  thumbnailKey?: string;
   previewVideo?: string;
   images?: string[];
-  instructors: string[];
   primaryInstructor: string;
   requirements?: string[];
   learningOutcomes?: string[];
@@ -69,6 +73,7 @@ export interface CreateCourseBody {
 
 export interface UpdateCourseBody {
   title?: string;
+  slug?: string;
   subtitle?: string;
   description?: string;
   shortDescription?: string;
@@ -76,10 +81,10 @@ export interface UpdateCourseBody {
   tags?: string[];
   level?: CourseLevel;
   language?: string;
-  thumbnail?: string;
+  thumbnailUrl?: string;
+  thumbnailKey?: string;
   previewVideo?: string;
   images?: string[];
-  instructors?: string[];
   primaryInstructor?: string;
   requirements?: string[];
   learningOutcomes?: string[];
@@ -127,10 +132,10 @@ export interface CourseResponse {
   tags: string[];
   level: CourseLevel;
   language: string;
-  thumbnail: string;
+  thumbnailUrl?: string;
+  thumbnailKey?: string;
   previewVideo?: string;
   images: string[];
-  instructors: string[] | IUser[];
   primaryInstructor: string | IUser;
   requirements: string[];
   learningOutcomes: string[];
@@ -214,15 +219,16 @@ export interface CreateLessonBody {
   title: string;
   description?: string;
   order: number;
-  contentType:LessonContentType;
+  contentType: LessonContentType;
+  durationSeconds: number;
   videoUrl?: string;
-  videoDuration?: number;
+  videoKey?: string;
+  videoStatus?: "pending" | "processing" | "ready" | "failed";
   videoProvider?: "youtube" | "vimeo" | "custom" | "aws_s3";
   textContent?: string;
   markdownContent?: string;
   resources?: string[];
   quiz?: string;
-  duration: number;
   isPublished?: boolean;
   isFree?: boolean;
   isPreview?: boolean;
@@ -240,15 +246,21 @@ export interface UpdateLessonBody {
     | "presentation"
     | "audio"
     | "code"
-    | "interactive";
+    | "interactive"
+    | "pdf"
+    | "article"
+    | "link"
+    | "quiz"
+    | "assignment";
   videoUrl?: string;
-  videoDuration?: number;
+  videoKey?: string;
+  videoStatus?: "pending" | "processing" | "ready" | "failed";
+  durationSeconds?: number;
   videoProvider?: "youtube" | "vimeo" | "custom" | "aws_s3";
   textContent?: string;
   markdownContent?: string;
   resources?: string[];
   quiz?: string;
-  duration?: number;
   isPublished?: boolean;
   isFree?: boolean;
   isPreview?: boolean;
@@ -264,13 +276,12 @@ export interface LessonResponse {
   order: number;
   contentType: string;
   videoUrl?: string;
-  videoDuration?: number;
   videoProvider?: string;
   textContent?: string;
   markdownContent?: string;
   resources: string[];
   quiz?: string;
-  duration: number;
+  durationSeconds: number;
   isPublished: boolean;
   isFree: boolean;
   isPreview: boolean;
