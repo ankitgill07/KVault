@@ -12,6 +12,7 @@ export interface IUser extends Document {
 
   profileName?: string;
   avatar?: string | undefined;
+  avatarKey?: string | undefined;
   bio?: string;
   phoneNumber?: string;
   twitterUrl?: string;

@@ -23,7 +23,7 @@ export interface ICourse extends Document {
   title: string;
   slug: string;
   subtitle?: string;
-  description: string;
+  description?: string;
   shortDescription?: string;
   
   // ── Categorization ─────────────────────────────────────
@@ -33,13 +33,11 @@ export interface ICourse extends Document {
   language: string;
   
   // ── Media ───────────────────────────────────────────────
-  thumbnail: string;
-  previewVideo?: string;
-  images: string[];
+  thumbnailUrl?: string;
+  thumbnailKey?: string;
   
-  // ── Instructors ─────────────────────────────────────────
-primaryInstructor: mongoose.Types.ObjectId | IUser;
-instructors: (mongoose.Types.ObjectId | IUser)[];
+  // ── Instructors ─────────────────────────────────────
+  primaryInstructor: mongoose.Types.ObjectId | IUser;
   
   // ── Course Details ──────────────────────────────────────
   requirements: string[];
@@ -68,14 +66,11 @@ instructors: (mongoose.Types.ObjectId | IUser)[];
   viewCount: number;
   
   // ── SEO ─────────────────────────────────────────────────
-  metaTitle?: string;
-  metaDescription?: string;
   metaKeywords?: string[];
   
   // ── Additional Info ─────────────────────────────────────
   certificateEnabled: boolean;
   lifetimeAccess: boolean;
-  prerequisites?: mongoose.Types.ObjectId[] | ICourse[];
   
   createdAt: Date;
   updatedAt: Date;
@@ -110,7 +105,8 @@ export interface ILesson extends Document {
   
   // ── Video Content ───────────────────────────────────────
   videoUrl?: string;
-  videoDuration?: number; // in seconds
+  videoKey?: string;
+  videoStatus?: 'pending' | 'processing' | 'ready' | 'failed';
   videoProvider?: VideoProvider;
   
   // ── Text Content ────────────────────────────────────────
@@ -124,7 +120,7 @@ export interface ILesson extends Document {
   quiz?: mongoose.Types.ObjectId | IQuiz;
   
   // ── Lesson Settings ─────────────────────────────────────
-  duration: number; // in minutes
+  durationSeconds: number; // in seconds
   isPublished: boolean;
   isFree: boolean;
   isPreview: boolean;
@@ -174,6 +170,7 @@ export interface IEnrollment extends Document {
   completedModules: mongoose.Types.ObjectId[] | IModule[];
   currentLesson?: mongoose.Types.ObjectId | ILesson;
   currentModule?: mongoose.Types.ObjectId | IModule;
+  lessonProgress?: Map<string, number>;
   
   // ── Time Tracking ───────────────────────────────────────
   totalTimeSpent: number; // in minutes
@@ -371,6 +368,11 @@ export enum LessonContentType {
   AUDIO = "audio",
   CODE = "code",
   INTERACTIVE = "interactive",
+  PDF = "pdf",
+  ARTICLE = "article",
+  LINK = "link",
+  QUIZ = "quiz",
+  ASSIGNMENT = "assignment",
 }
 
 export enum VideoProvider {
