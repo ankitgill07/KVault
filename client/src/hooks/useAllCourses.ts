@@ -53,14 +53,14 @@ const mappedCourses: Course[] = fetchedCourses.map((course: any) => ({
   price: course.price || 0,
   discountPrice: course.discountPrice,
   previewVideo: course.previewVideo || "",
-  thumbnail: course.thumbnail || course.image || "",
+  thumbnailUrl: course.thumbnailUrl || course.thumbnail || course.image || "",
+  thumbnailKey: course.thumbnailKey,
   requirements: course.requirements || [],
   learningOutcomes: course.learningOutcomes || [],
   rating: course.rating || 0,
   enrollmentCount: course.enrollmentCount || 0,
   reviewCount: course.reviewCount || 0,
   category: course.category,
-  instructors: course.instructors || [],
   updatedAt : course.updatedAt,
   instructorAvatar:
     course.instructorAvatar ||
