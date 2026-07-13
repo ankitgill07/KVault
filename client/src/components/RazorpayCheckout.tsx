@@ -40,6 +40,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
   onDismiss,
 }) => {
   const razorpayRef = useRef<any>(null);
+  const openedRef = useRef(false);
 
   useEffect(() => {
     // Load Razorpay script if not already loaded
@@ -54,7 +55,8 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
 
     // Initialize Razorpay after script is loaded
     const initializeRazorpay = () => {
-      if (window.Razorpay) {
+      if (window.Razorpay && !openedRef.current) {
+        openedRef.current = true;
         const razorpay = new window.Razorpay({
           ...options,
           handler: (response: any) => {
@@ -70,6 +72,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
         });
 
         razorpayRef.current = razorpay;
+        razorpay.on("payment.failed", onFailure);
         razorpay.open();
       }
     };

@@ -1,423 +1,291 @@
-// src/components/VideoPlayer.tsx
-//
-// Video Player Component - Handles video playback with progress tracking
-// Supports real-time progress updates and lesson completion
-
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  Volume2,
-  VolumeX,
-  Settings,
-  Maximize,
-  CheckCircle2,
-} from "lucide-react";
-import type { Lesson } from "../lib/courseTypes";
-import { enrollmentService } from "../services/enrollmentService";
+  createPlayer,
+  selectPlayback,
+  selectTime,
+  selectError,
+} from "@videojs/react";
+import { VideoSkin, Video, videoFeatures } from "@videojs/react/video";
+import "@videojs/react/video/skin.css";
+import { CheckCircle2, AlertCircle } from "lucide-react";
+import type { Lesson } from "../api/lessonApi";
+import { getMediaUrl } from "../utils/mediaUrl";
+import { axiosInstance } from "../api/axoisInstance";
 
 interface VideoPlayerProps {
   lesson: Lesson;
   courseId: string;
-  onComplete: (lessonId: string) => void;
-  onProgress: (currentTime: number, duration: number) => void;
-  isCompleted?: boolean;
+  onComplete: (lessonId: string) => Promise<void>;
+  onProgress: (currentTime: number, duration: number) => Promise<void>;
+  isCompleted: boolean;
+  initialTime?: number;
+  posterUrl?: string;
 }
 
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
+// The player "shape" (which features it supports) is fixed for the app,
+// so this is created once at module scope rather than per render/instance.
+const Player = createPlayer({ features: videoFeatures });
 
-export function VideoPlayer({
+// Renders nothing — lives inside <Player.Provider> purely to bridge player
+// state (progress, completion, resume, errors) out to the lesson APIs.
+// This mirrors the old component's videojs `.on(...)` listeners, but as
+// reactive `usePlayer` selector subscriptions instead of imperative events.
+const PlaybackTracker: React.FC<{
+  lessonId: string;
+  initialTime: number;
+  onComplete: (lessonId: string) => Promise<void>;
+  onProgress: (currentTime: number, duration: number) => Promise<void>;
+  onErrorMessage: (message: string) => void;
+}> = ({ lessonId, initialTime, onComplete, onProgress, onErrorMessage }) => {
+  const time = Player.usePlayer(selectTime);
+  const playback = Player.usePlayer(selectPlayback);
+  const err = Player.usePlayer(selectError);
+
+  const lastProgressSent = useRef(0);
+  const seekedRef = useRef(false);
+  const completedRef = useRef(false);
+
+  // Resume from the last saved position once duration is known
+  useEffect(() => {
+    if (!seekedRef.current && initialTime > 0 && time && time.duration > 0) {
+      seekedRef.current = true;
+      time.seek(initialTime);
+    }
+  }, [time?.duration, initialTime]);
+
+  // Report progress in ~5s increments
+  useEffect(() => {
+    if (!time) return;
+    if (Math.abs(time.currentTime - lastProgressSent.current) >= 5) {
+      lastProgressSent.current = time.currentTime;
+      onProgress(time.currentTime, time.duration).catch((e) => {
+        console.error("Error updating progress:", e);
+      });
+    }
+  }, [time?.currentTime, time?.duration, onProgress]);
+
+  // Fire completion once, when playback ends
+  useEffect(() => {
+    if (playback?.ended && !completedRef.current) {
+      completedRef.current = true;
+      onComplete(lessonId).catch((e) => {
+        console.error("Error marking lesson completed:", e);
+      });
+    }
+    if (playback && !playback.ended) {
+      completedRef.current = false;
+    }
+  }, [playback?.ended, lessonId, onComplete]);
+
+  // Surface media errors to the parent
+  useEffect(() => {
+    onErrorMessage(err?.error?.message ?? "");
+  }, [err?.error, onErrorMessage]);
+
+  return null;
+};
+
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   lesson,
+  courseId,
   onComplete,
   onProgress,
-  isCompleted = false,
-}: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const progressRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
+  isCompleted,
+  initialTime = 0,
+  posterUrl,
+}) => {
+  const [playerError, setPlayerError] = useState<string>("");
+  const [streamSrc, setStreamSrc] = useState<string>("");
+  const [isAcquiringSession, setIsAcquiringSession] = useState(false);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const streamSessionIdRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [skipFeedback, setSkipFeedback] = useState<{
-    show: boolean;
-    direction: "back" | "forward";
-    position: number;
-  }>({ show: false, direction: "back", position: 0 });
+  const isPreviewOrFree = lesson.isPreview || lesson.isFree;
+  const poster = getMediaUrl(posterUrl);
 
-  // Auto-hide controls after 3 seconds of inactivity
+  // Build the base stream URL for this lesson
+  const rawStreamUrl = getMediaUrl(lesson.videoUrl);
+  const baseStreamUrl = rawStreamUrl.startsWith("/")
+    ? `http://localhost:3000${rawStreamUrl}`
+    : rawStreamUrl;
+
+  // ── Heartbeat sender ─────────────────────────────────────────────────
+  const startHeartbeat = useCallback(
+    (ssid: string) => {
+      // Clear any existing heartbeat
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+      }
+
+      heartbeatRef.current = setInterval(async () => {
+        try {
+          await axiosInstance.post(`/lessons/${lesson._id}/heartbeat`, {
+            streamSessionId: ssid,
+          });
+        } catch (err: any) {
+          const status = err?.response?.status;
+          if (status === 410) {
+            // Stream was evicted or expired
+            setPlayerError(
+              "Stream closed. You may be watching on another device.",
+            );
+            if (heartbeatRef.current) {
+              clearInterval(heartbeatRef.current);
+              heartbeatRef.current = null;
+            }
+          }
+        }
+      }, 30_000);
+    },
+    [lesson._id],
+  );
+
+  // ── Stream session acquisition ───────────────────────────────────────
   useEffect(() => {
-    if (!isPlaying) {
-      setShowControls(true);
+    mountedRef.current = true;
+
+    if (isPreviewOrFree) {
+      // Preview / free lessons stream directly — no session needed
+      setStreamSrc(baseStreamUrl);
       return;
     }
 
-    const timer = setTimeout(() => {
-      setShowControls(false);
-    }, 3000);
+    // Paid lesson — acquire a stream session first
+    let cancelled = false;
+    setIsAcquiringSession(true);
+    setPlayerError("");
 
-    return () => clearTimeout(timer);
-  }, [isPlaying, currentTime]);
+    (async () => {
+      try {
+        const response = await axiosInstance.post(
+          `/lessons/${lesson._id}/stream-session`,
+        );
+        if (cancelled || !mountedRef.current) return;
 
-  // Mark lesson as completed when video ends
-  const handleEnded = useCallback(() => {
-    setIsPlaying(false);
-    if (!isCompleted) {
-      onComplete(lesson._id);
-    }
-  }, [lesson._id, onComplete, isCompleted]);
+        const ssid = response.data?.data?.streamSessionId;
+        if (!ssid) {
+          setPlayerError("Failed to initialize video stream.");
+          return;
+        }
 
-  const handleTogglePlay = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
+        streamSessionIdRef.current = ssid;
 
-  const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
-    const current = videoRef.current.currentTime;
-    setCurrentTime(current);
+        // Build the stream URL with the session ID
+        const separator = baseStreamUrl.includes("?") ? "&" : "?";
+        setStreamSrc(`${baseStreamUrl}${separator}ssid=${ssid}`);
 
-    // Throttle progress updates to every 5 seconds
-    const now = Date.now();
-    if (now - lastUpdateTimeRef.current > 5000) {
-      lastUpdateTimeRef.current = now;
-      onProgress(
-        current,
-        videoRef.current.duration || lesson.videoDuration || 0,
-      );
-    }
-  };
+        // Start heartbeats
+        startHeartbeat(ssid);
+      } catch (err: any) {
+        if (cancelled || !mountedRef.current) return;
 
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      const videoDuration =
-        videoRef.current.duration || lesson.videoDuration || 0;
-      setDuration(videoDuration);
-    }
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!progressRef.current || !videoRef.current) return;
-    const rect = progressRef.current.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    const newTime = pos * duration;
-    videoRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
-
-  const handleSkip = (seconds: number, direction: "back" | "forward") => {
-    if (!videoRef.current) return;
-    const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
-    videoRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-
-    setSkipFeedback({
-      show: true,
-      direction,
-      position:
-        direction === "back"
-          ? 20
-          : containerRef.current
-            ? containerRef.current.offsetWidth - 20
-            : 80,
-    });
-    setTimeout(
-      () => setSkipFeedback((prev) => ({ ...prev, show: false })),
-      600,
-    );
-  };
-
-  const handleVolumeChange = (newVolume: number) => {
-    if (!videoRef.current) return;
-    setVolume(newVolume);
-    videoRef.current.volume = newVolume;
-    setIsMuted(newVolume === 0);
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    if (isMuted) {
-      videoRef.current.volume = volume || 0.5;
-      setIsMuted(false);
-    } else {
-      videoRef.current.volume = 0;
-      setIsMuted(true);
-    }
-  };
-
-  const handleSpeedChange = (speed: number) => {
-    if (!videoRef.current) return;
-    videoRef.current.playbackRate = speed;
-    setPlaybackSpeed(speed);
-    setShowSpeedMenu(false);
-  };
-
-  const handleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      containerRef.current.requestFullscreen();
-    }
-  };
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      switch (e.key) {
-        case " ":
-          e.preventDefault();
-          handleTogglePlay();
-          break;
-        case "ArrowLeft":
-          handleSkip(-10, "back");
-          break;
-        case "ArrowRight":
-          handleSkip(10, "forward");
-          break;
-        case "ArrowUp":
-          handleVolumeChange(Math.min(1, volume + 0.1));
-          break;
-        case "ArrowDown":
-          handleVolumeChange(Math.max(0, volume - 0.1));
-          break;
-        case "f":
-          handleFullscreen();
-          break;
-        case "m":
-          toggleMute();
-          break;
+        const status = err?.response?.status;
+        if (status === 429) {
+          setPlayerError(
+            "Simultaneous stream limit exceeded. You are watching on too many devices.",
+          );
+        } else if (status === 403) {
+          setPlayerError(
+            "Access denied. Please purchase the course to watch this lesson.",
+          );
+        } else if (status === 401) {
+          setPlayerError("Please log in to watch this lesson.");
+        } else {
+          setPlayerError("Failed to initialize video stream.");
+        }
+      } finally {
+        if (!cancelled && mountedRef.current) {
+          setIsAcquiringSession(false);
+        }
       }
-    },
-    [
-      volume,
-      handleTogglePlay,
-      handleSkip,
-      handleVolumeChange,
-      toggleMute,
-      handleFullscreen,
-    ],
-  );
+    })();
 
+    return () => {
+      cancelled = true;
+      mountedRef.current = false;
+
+      // Stop heartbeat
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+    };
+  }, [lesson._id, isPreviewOrFree, baseStreamUrl, startHeartbeat]);
+
+  // Reset local error state whenever the lesson/source changes
   useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-
-  // Calculate progress percentage
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+    setPlayerError("");
+  }, [lesson._id, courseId]);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative bg-black rounded-2xl overflow-hidden shadow-lg group"
-      onMouseMove={() => setShowControls(true)}
-    >
-      {/* Video Element */}
-      <video
-        ref={videoRef}
-        className="w-full aspect-video object-contain"
-        poster={lesson.thumbnail}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
-        onClick={handleTogglePlay}
-        playsInline
-      >
-        {lesson.videoUrl && <source src={lesson.videoUrl} type="video/mp4" />}
-      </video>
-
-      {/* Skip Feedback */}
-      {skipFeedback.show && (
-        <div
-          className="absolute top-1/2 -translate-y-1/2 bg-black/70 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-opacity duration-300"
-          style={{ left: skipFeedback.position }}
-        >
-          {skipFeedback.direction === "back" ? (
-            <>
-              <SkipBack className="w-4 h-4" />
-              <span>10s</span>
-            </>
-          ) : (
-            <>
-              <SkipForward className="w-4 h-4" />
-              <span>10s</span>
-            </>
-          )}
+    <div className="relative w-full h-96 rounded-2xl overflow-hidden shadow-2xl border border-zinc-205 dark:border-zinc-800 bg-black group">
+      {streamSrc && !playerError ? (
+        // `key` forces a full remount (fresh player store + media element)
+        // whenever the lesson changes, equivalent to the old dispose()/re-create.
+        <Player.Provider key={`${lesson._id}-${streamSrc}`}>
+          <VideoSkin className="h-full w-full">
+            <Video
+              src={streamSrc}
+              poster={poster}
+              autoPlay
+              playsInline
+              crossOrigin="use-credentials"
+            />
+          </VideoSkin>
+          <PlaybackTracker
+            lessonId={lesson._id}
+            initialTime={initialTime}
+            onComplete={onComplete}
+            onProgress={onProgress}
+            onErrorMessage={setPlayerError}
+          />
+        </Player.Provider>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 px-6 text-center">
+          <div className="max-w-md space-y-3 text-white">
+            {isAcquiringSession ? (
+              <>
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <p className="text-sm font-semibold">Preparing video…</p>
+              </>
+            ) : playerError ? (
+              <>
+                <AlertCircle className="mx-auto h-8 w-8 text-red-400" />
+                <p className="text-sm font-semibold">Video cannot play</p>
+                <p className="text-xs leading-relaxed text-zinc-300">
+                  {playerError}
+                </p>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="mx-auto h-8 w-8 text-red-400" />
+                <p className="text-sm font-semibold">Video cannot play</p>
+                <p className="text-xs leading-relaxed text-zinc-300">
+                  This lesson does not have a playable video URL yet.
+                </p>
+              </>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Completion Badge */}
+      {playerError && streamSrc && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 px-6 text-center">
+          <div className="max-w-md space-y-3 text-white">
+            <AlertCircle className="mx-auto h-8 w-8 text-red-400" />
+            <p className="text-sm font-semibold">Video cannot play</p>
+            <p className="text-xs leading-relaxed text-zinc-300">{playerError}</p>
+          </div>
+        </div>
+      )}
+
       {isCompleted && (
-        <div className="absolute top-4 right-4 bg-[#10B981] text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg">
-          <CheckCircle2 className="w-5 h-5" />
-          <span className="text-sm font-medium">Completed</span>
+        <div className="absolute top-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg z-10 animate-fade-in">
+          <CheckCircle2 className="w-4 h-4" />
+          <span className="text-xs font-semibold">Completed</span>
         </div>
       )}
-
-      {/* Center Play Button (when paused) */}
-      {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <button
-            onClick={handleTogglePlay}
-            className="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center hover:scale-110 transition-transform pointer-events-auto"
-          >
-            <Play className="w-8 h-8 text-gray-900 ml-1" fill="currentColor" />
-          </button>
-        </div>
-      )}
-
-      {/* Video Controls */}
-      <div
-        className={`
-          absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent
-          transition-opacity duration-300 p-4
-          ${showControls ? "opacity-100" : "opacity-0"}
-        `}
-      >
-        {/* Progress Bar */}
-        <div
-          ref={progressRef}
-          className="progress-bar group mb-3 cursor-pointer"
-          onClick={handleSeek}
-        >
-          <div className="h-1.5 bg-white/30 rounded-full overflow-hidden group-hover:h-2.5 transition-all">
-            <div
-              className="h-full bg-[#6C4DFF] rounded-full relative transition-all"
-              style={{ width: `${progressPercent}%` }}
-            >
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          </div>
-        </div>
-
-        {/* Control Buttons */}
-        <div className="flex items-center justify-between">
-          {/* Left Controls */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => handleSkip(-10, "back")}
-              type="button"
-              className="text-white hover:text-[#6C4DFF] transition-colors p-1"
-              title="Skip back 10s"
-            >
-              <SkipBack className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={handleTogglePlay}
-              type="button"
-              className="text-white p-2 hover:scale-110 transition-transform"
-            >
-              {isPlaying ? (
-                <Pause className="w-6 h-6 fill-white" />
-              ) : (
-                <Play className="w-6 h-6 fill-white" />
-              )}
-            </button>
-
-            <button
-              onClick={() => handleSkip(10, "forward")}
-              type="button"
-              className="text-white hover:text-[#6C4DFF] transition-colors p-1"
-              title="Skip forward 10s"
-            >
-              <SkipForward className="w-5 h-5" />
-            </button>
-
-            <span className="text-white text-sm ml-2">
-              {formatTime(currentTime)} /{" "}
-              {formatTime(duration || lesson.videoDuration || 0)}
-            </span>
-          </div>
-
-          {/* Right Controls */}
-          <div className="flex items-center gap-3">
-            {/* Volume */}
-            <div className="flex items-center gap-2 group">
-              <button
-                onClick={toggleMute}
-                className="text-white hover:text-[#6C4DFF] transition-colors"
-              >
-                {isMuted ? (
-                  <VolumeX className="w-5 h-5" />
-                ) : (
-                  <Volume2 className="w-5 h-5" />
-                )}
-              </button>
-              <div className="w-0 overflow-hidden group-hover:w-20 transition-all duration-200">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) =>
-                    handleVolumeChange(parseFloat(e.target.value))
-                  }
-                  className="w-16 accent-[#6C4DFF]"
-                />
-              </div>
-            </div>
-
-            {/* Playback Speed */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                className="text-white hover:text-[#6C4DFF] transition-colors flex items-center gap-1 px-2 py-1"
-              >
-                <span className="text-xs font-medium">{playbackSpeed}x</span>
-              </button>
-              {showSpeedMenu && (
-                <div className="absolute bottom-full right-0 mb-2 bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-                  {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
-                    <button
-                      key={speed}
-                      onClick={() => handleSpeedChange(speed)}
-                      className={`block w-full px-4 py-2 text-sm text-left hover:bg-gray-700 ${
-                        playbackSpeed === speed
-                          ? "text-[#6C4DFF]"
-                          : "text-white"
-                      }`}
-                    >
-                      {speed}x
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Settings */}
-            <button className="text-white hover:text-[#6C4DFF] transition-colors">
-              <Settings className="w-5 h-5" />
-            </button>
-
-            {/* Fullscreen */}
-            <button
-              onClick={handleFullscreen}
-              className="text-white hover:text-[#6C4DFF] transition-colors"
-            >
-              <Maximize className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
-}
+};

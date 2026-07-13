@@ -47,7 +47,7 @@ export const ContinueLearning: React.FC<ContinueLearningProps> = ({ courses, onR
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -3 }}
-            className="bg-white rounded-3xl p-6 border border-brand-border premium-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
+            className="bg-bg-card rounded-3xl p-6 border border-brand-border premium-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
           >
             <div className="flex items-center gap-4 flex-1">
               <div 

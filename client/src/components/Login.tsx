@@ -44,17 +44,8 @@ export const Login: React.FC = () => {
     setError("");
     setIsLoading(true);
     try {
-      const response = await authService.login({
-        email: data.email,
-        password: data.password,
-      });
-      if (response.success) {
-        const { user: userData } = response.data;
-        // Update user context with the logged-in user
-        // The session cookie is already set by the server
-        // We need to fetch the user data or use what's returned
-        window.location.href = "/";
-      }
+      await login(data.email, data.password);
+      navigate("/");
     } catch (err: any) {
       const errorMessage = err.message || "Login failed. Please check your credentials.";
       // If email is not verified, redirect to OTP verification page
@@ -81,7 +72,7 @@ export const Login: React.FC = () => {
       {/* Back button */}
       <button
         onClick={() => navigate("/")}
-        className="absolute top-2 left-10 z-50 flex items-center gap-2 px-4 py-2 bg-white/80 hover:bg-white border border-brand-border rounded-full text-xs font-bold text-brand-navy premium-shadow hover:scale-102 transition-all cursor-pointer"
+        className="absolute top-2 left-10 z-50 flex items-center gap-2 px-4 py-2 bg-bg-card/85 hover:bg-bg-card border border-brand-border rounded-full text-xs font-bold text-brand-navy premium-shadow hover:scale-102 transition-all cursor-pointer"
       >
         <ArrowLeft className="w-3.5 h-3.5 text-brand-purple" />
         <span>Back to Home</span>
@@ -124,7 +115,7 @@ export const Login: React.FC = () => {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md bg-white rounded-[32px] border border-brand-border premium-shadow p-8 relative"
+          className="w-full max-w-md bg-bg-card rounded-[32px] border border-brand-border premium-shadow p-8 relative"
         >
           {/* Sparkle badge */}
           <div className="flex items-center gap-1.5 px-3 py-1 bg-brand-purple/10 text-brand-purple rounded-full text-[10px] font-bold w-fit mb-6">
@@ -247,7 +238,7 @@ export const Login: React.FC = () => {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-brand-border/80"></div>
             </div>
-            <span className="relative bg-white px-3 text-[10px] uppercase font-bold tracking-wider text-brand-gray">
+            <span className="relative bg-bg-card px-3 text-[10px] uppercase font-bold tracking-wider text-brand-gray">
               Or continue with
             </span>
           </div>
@@ -300,7 +291,7 @@ export const Login: React.FC = () => {
             </div>
             <button
               onClick={fillDemo}
-              className="px-3.5 py-2 bg-white hover:bg-bg-secondary border border-brand-border rounded-xl text-[10px] font-extrabold text-brand-purple transition-all cursor-pointer shrink-0"
+              className="px-3.5 py-2 bg-bg-card hover:bg-bg-secondary border border-brand-border rounded-xl text-[10px] font-extrabold text-brand-purple transition-all cursor-pointer shrink-0"
             >
               Autofill
             </button>

@@ -1,18 +1,15 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Star,
-  Clock,
-  BookOpen,
-  Heart,
-  ShoppingBag,
-  Check,
-  X,
-} from "lucide-react";
+import React, { useEffect, useMemo } from "react";
+import { X } from "lucide-react";
 import type { Course } from "../api/courseApi";
 import { useAllCourses } from "../hooks/useAllCourses";
-import { WelcomeBanner } from "./WelcomeBanner";
 import CourseSection from "./CourseSection";
+import { useUser } from "../context/UserContext";
+import { useAppDispatch, useAppSelector } from "../store";
+import {
+  fetchMyEnrollments,
+  selectEnrollments,
+} from "../store/enrollmentSlice";
+import { fetchCourseProgress } from "../store/progressSlice";
 
 interface CourseTabsProps {
   cart: string[];
@@ -24,9 +21,50 @@ interface CourseTabsProps {
 
 export const CourseTabs: React.FC = () => {
   const { courses, loading, error } = useAllCourses();
-  const [selectedTab, setSelectedTab] = useState("Popular");
+  const dispatch = useAppDispatch();
+  const { isSignedIn, user } = useUser();
+  const enrollments = useAppSelector(selectEnrollments);
+  const lastWatchedByCourseId = useAppSelector(
+    (state) => state.progress.lastWatched,
+  );
 
+  useEffect(() => {
+    if (isSignedIn) {
+      dispatch(fetchMyEnrollments());
+    }
+  }, [dispatch, isSignedIn]);
 
+  const enrolledCourseIds = useMemo(
+    () =>
+      new Set(
+        enrollments
+          .map((enrollment) =>
+            typeof enrollment.course === "string"
+              ? enrollment.course
+              : enrollment.course?._id,
+          )
+          .filter(Boolean),
+      ),
+    [enrollments],
+  );
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    enrolledCourseIds.forEach((courseId) => {
+      dispatch(fetchCourseProgress(courseId));
+    });
+  }, [dispatch, enrolledCourseIds, isSignedIn]);
+
+  const enrolledCourses = useMemo(
+    () => courses.filter((course) => enrolledCourseIds.has(course._id)),
+    [courses, enrolledCourseIds],
+  );
+
+  const discoverCourses = useMemo(
+    () => courses.filter((course) => !enrolledCourseIds.has(course._id)),
+    [courses, enrolledCourseIds],
+  );
 
   if (loading) {
     return (
@@ -68,11 +106,28 @@ export const CourseTabs: React.FC = () => {
     <div className="p-4 md:px-8 max-w-7xl mx-auto w-full">
       <div>
         <h1 className="text-xl sm:text-2xl  tracking-tight leading-tight font-bold">
-          Welcome back, Ankit{" "}
+          Welcome back{user?.name ? `, ${user.name}` : ""}
         </h1>
       </div>
-      <section className="py-20">
-        <CourseSection title="Discover Courses" courses={courses} />
+      {enrolledCourses.length > 0 && (
+        <section className="pt-12">
+          <CourseSection
+            title="Let's start learning"
+            description="Jump back into the courses you already own"
+            courses={enrolledCourses}
+            limit={4}
+            isPurchasedSection={true}
+            enrollments={enrollments}
+            lastWatchedByCourseId={lastWatchedByCourseId}
+          />
+        </section>
+      )}
+      <section className={enrolledCourses.length > 0 ? "py-6" : "py-20"}>
+        <CourseSection
+          title="Discover Courses"
+          description="Explore new courses you have not purchased yet"
+          courses={discoverCourses}
+        />
       </section>
     </div>
   );

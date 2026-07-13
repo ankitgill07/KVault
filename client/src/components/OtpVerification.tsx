@@ -288,7 +288,7 @@ export const OtpVerification: React.FC<OtpVerificationProps> = ({
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md bg-white rounded-[32px] border border-brand-border premium-shadow p-8 relative"
+          className="w-full max-w-md bg-bg-card rounded-[32px] border border-brand-border premium-shadow p-8 relative"
         >
           <div className="flex items-center gap-1.5 px-3 py-1 bg-brand-purple/10 text-brand-purple rounded-full text-[10px] font-bold w-fit mb-6">
             <MailCheck className="w-3 h-3" />

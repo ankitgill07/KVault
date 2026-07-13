@@ -3,7 +3,7 @@ import { Hexagon, Send } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-white border-t border-brand-border/60 mt-20">
+    <footer className="bg-bg-card border-t border-brand-border/60 mt-20">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-16">
         
         {/* Links Grid */}
@@ -66,7 +66,7 @@ export const Footer: React.FC = () => {
               <input
                 type="email"
                 placeholder="you@domain.com"
-                className="w-full pl-3 pr-10 py-2.5 bg-bg-secondary border border-transparent rounded-xl text-xs font-semibold focus:bg-white focus:border-brand-purple transition-all"
+                className="w-full pl-3 pr-10 py-2.5 bg-bg-secondary border border-transparent rounded-xl text-xs font-semibold focus:bg-bg-card focus:border-brand-purple transition-all"
               />
               <button className="absolute right-1 top-1 bottom-1 px-2.5 rounded-lg bg-brand-purple hover:bg-brand-blue text-white transition-colors flex items-center justify-center">
                 <Send className="w-3.5 h-3.5" />

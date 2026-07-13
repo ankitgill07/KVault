@@ -43,7 +43,7 @@ export const Register: React.FC = () => {
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col lg:flex-row relative w-full">
       <button onClick={() => navigate('/')}
-        className="absolute top-2 left-10 z-50 flex items-center gap-2 px-4 py-2 bg-white/80 hover:bg-white border border-brand-border rounded-full text-xs font-bold text-brand-navy premium-shadow cursor-pointer">
+        className="absolute top-2 left-10 z-50 flex items-center gap-2 px-4 py-2 bg-bg-card/85 hover:bg-bg-card border border-brand-border rounded-full text-xs font-bold text-brand-navy premium-shadow cursor-pointer">
         <ArrowLeft className="w-3.5 h-3.5 text-brand-purple" /><span>Back to Home</span>
       </button>
       <div className="lg:w-5/12 bg-gradient-to-tr from-brand-purple to-brand-blue flex flex-col justify-between p-12 text-white relative overflow-hidden shrink-0">
@@ -66,7 +66,7 @@ export const Register: React.FC = () => {
       </div>
       <div className="lg:w-7/12 flex items-center justify-center p-8 bg-bg-primary w-full">
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          className="w-full max-w-md bg-white rounded-[32px] border border-brand-border premium-shadow p-8 relative">
+          className="w-full max-w-md bg-bg-card rounded-[32px] border border-brand-border premium-shadow p-8 relative">
           <div className="flex items-center gap-1.5 px-3 py-1 bg-brand-purple/10 text-brand-purple rounded-full text-[10px] font-bold w-fit mb-6"><span>Create account</span></div>
           <h2 className="text-2xl font-extrabold text-brand-navy tracking-tight mb-1">Join KVault</h2>
           <p className="text-xs font-semibold text-brand-gray mb-6">Create an account to start learning today.</p>

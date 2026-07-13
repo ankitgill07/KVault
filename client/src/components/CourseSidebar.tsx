@@ -11,10 +11,10 @@ import {
   CheckCircle2,
   Circle,
   Lock,
-  Play,
   X
 } from 'lucide-react';
 import type { CourseData, Lesson } from '../lib/courseTypes';
+import { formatDuration } from '../utils/Helping';
 
 interface CourseSidebarProps {
   course: CourseData;
@@ -98,7 +98,7 @@ export function CourseSidebar({
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 right-0 h-full w-[380px] bg-white border-l border-gray-200 z-50
+          fixed top-0 right-0 h-full w-[380px] bg-bg-card border-l border-brand-border z-50
           transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 lg:static lg:z-10
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}
@@ -106,29 +106,29 @@ export function CourseSidebar({
       >
         <div className="h-full flex flex-col">
           {/* Mobile Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 lg:hidden">
-            <h2 className="font-semibold text-gray-900">Course Content</h2>
+          <div className="flex items-center justify-between p-4 border-b border-brand-border lg:hidden">
+            <h2 className="font-semibold text-brand-navy">Course Content</h2>
             <button
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700"
+              className="p-2 text-brand-gray hover:text-brand-navy"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Course Progress */}
-          <div className="p-6 border-b border-gray-100">
+          <div className="p-6 border-b border-brand-border/60">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-900">Course Progress</span>
-              <span className="text-sm font-semibold text-[#6C4DFF]">{progressPercentage}%</span>
+              <span className="text-sm font-medium text-brand-navy">Course Progress</span>
+              <span className="text-sm font-semibold text-brand-purple">{progressPercentage}%</span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-bg-secondary rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#6C4DFF] rounded-full transition-all duration-500"
+                className="h-full bg-brand-purple rounded-full transition-all duration-500"
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-brand-gray mt-2">
               {completedCount} of {totalCount} lessons completed
             </p>
           </div>
@@ -136,13 +136,13 @@ export function CourseSidebar({
           {/* Search */}
           <div className="p-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gray" />
               <input
                 type="text"
                 placeholder="Search lessons..."
                 value={sidebarSearch}
                 onChange={(e) => setSidebarSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6C4DFF] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 bg-bg-secondary border border-brand-border text-brand-navy rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
               />
             </div>
           </div>
@@ -153,20 +153,20 @@ export function CourseSidebar({
               <div key={module._id} className="mb-2">
                 <button
                   onClick={() => toggleSection(module._id)}
-                  className="flex items-center justify-between w-full py-3 px-2 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex items-center justify-between w-full py-3 px-2 text-left hover:bg-bg-secondary rounded-lg transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-semibold text-gray-900 block truncate">
+                    <span className="text-sm font-semibold text-brand-navy block truncate">
                       {module.title}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-brand-gray">
                       {module.totalLessons} lessons
                     </span>
                   </div>
                   {expandedSections.has(module._id) ? (
-                    <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
+                    <ChevronUp className="w-4 h-4 text-brand-gray flex-shrink-0 ml-2" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
+                    <ChevronDown className="w-4 h-4 text-brand-gray flex-shrink-0 ml-2" />
                   )}
                 </button>
 
@@ -186,37 +186,37 @@ export function CourseSidebar({
                             sidebar-item w-full flex items-center gap-3 p-3 text-left rounded-lg
                             transition-all duration-200
                             ${isCurrentLesson
-                              ? 'bg-[#6C4DFF] text-white shadow-md'
+                              ? 'bg-brand-purple text-white shadow-md'
                               : isLocked
                                 ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:bg-gray-50'
+                                : 'hover:bg-bg-secondary'
                             }
                           `}
                         >
                           <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center">
                             {isLocked ? (
-                              <Lock className="w-4 h-4 text-gray-400" />
+                              <Lock className="w-4 h-4 text-brand-gray" />
                             ) : isCompleted ? (
-                              <CheckCircle2 className="w-5 h-5 text-[#10B981]" />
+                              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                             ) : isCurrentLesson ? (
                               <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
                             ) : (
-                              <Circle className="w-5 h-5 text-gray-300" />
+                              <Circle className="w-5 h-5 text-brand-gray" />
                             )}
                           </div>
 
                           <div className="flex-1 min-w-0">
                             <p className={`
                               text-sm font-medium truncate
-                              ${isCurrentLesson ? 'text-white' : 'text-gray-900'}
+                              ${isCurrentLesson ? 'text-white' : 'text-brand-navy'}
                             `}>
                               {lesson.title}
                             </p>
                             <p className={`
                               text-xs
-                              ${isCurrentLesson ? 'text-white/70' : 'text-gray-500'}
+                              ${isCurrentLesson ? 'text-white/70' : 'text-brand-gray'}
                             `}>
-                              {lesson.duration} min
+                              {formatDuration(lesson.duration * 60)}
                             </p>
                           </div>
 
