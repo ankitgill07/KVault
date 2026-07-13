@@ -9,8 +9,10 @@ import { cartApi, type CartItemResponse, type CartResponse, type CheckoutRespons
 export interface CartItemUI {
   courseId: string;
   title: string;
-  price: number;
-  thumbnail: string;
+  price: number;          // effective price (discountPrice or price)
+  originalPrice: number;  // full MRP
+  discountPrice?: number; // sale price if set
+  thumbnailUrl: string;
   slug: string;
 }
 
@@ -26,8 +28,10 @@ export interface CartUI {
 const mapCartItemToUI = (item: CartItemResponse): CartItemUI => ({
   courseId: item.course?._id ?? item._id,
   title: item.course?.title ?? 'Unknown Course',
-  price: item.priceAtAdd ?? item.course?.price ?? 0,
-  thumbnail: item.course?.thumbnail ?? '',
+  price: item.course?.discountPrice ?? item.priceAtAdd ?? item.course?.price ?? 0,
+  originalPrice: item.course?.price ?? item.priceAtAdd ?? 0,
+  discountPrice: item.course?.discountPrice,
+  thumbnailUrl: item.course?.thumbnailUrl ?? '',
   slug: item.course?.slug ?? '',
 });
 
@@ -78,4 +82,3 @@ export const cartService = {
     return cart.items.some((item) => item.courseId === courseId);
   },
 };
-

@@ -10,7 +10,7 @@ export interface WishlistItemUI {
   courseId: string;
   title: string;
   price: number;
-  thumbnail: string;
+  thumbnailUrl: string;
   slug: string;
 }
 
@@ -26,7 +26,7 @@ const mapWishlistItemToUI = (item: WishlistItemResponse): WishlistItemUI => ({
   courseId: item.course?._id ?? item._id,
   title: item.course?.title ?? 'Unknown Course',
   price: item.course?.price ?? 0,
-  thumbnail: item.course?.thumbnail ?? '',
+  thumbnailUrl: item.course?.thumbnailUrl ?? '',
   slug: item.course?.slug ?? '',
 });
 
@@ -65,4 +65,3 @@ export const wishlistService = {
     return wishlist.items.some((item) => item.courseId === courseId);
   },
 };
-

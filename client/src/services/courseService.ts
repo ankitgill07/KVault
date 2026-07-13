@@ -124,4 +124,21 @@ export const courseService = {
       throw error;
     }
   },
+
+  /**
+   * Get presigned URL for direct upload to R2
+   */
+  getUploadPresignedUrl: async (data: {
+    type: 'thumbnail' | 'video';
+    fileName: string;
+    fileType: string;
+  }) => {
+    try {
+      const response = await courseApi.getUploadPresignedUrl(data);
+      return response.data;
+    } catch (error) {
+      console.error("Error getting presigned URL:", error);
+      throw error;
+    }
+  },
 };

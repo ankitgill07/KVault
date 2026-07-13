@@ -4,6 +4,7 @@
 // This file wraps the enrollment API calls with error handling and additional logic.
 
 import { enrollmentApi } from "../api/enrollmentApi";
+import type { Enrollment } from "../api/enrollmentApi";
 
 // ─── Enrollment Service ───────────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ export const enrollmentService = {
   /**
    * Get current user's enrollments
    */
-  getMyEnrollments: async () => {
+  getMyEnrollments: async (): Promise<Enrollment[]> => {
     try {
       const response = await enrollmentApi.getMyEnrollments();
       return response.data;
