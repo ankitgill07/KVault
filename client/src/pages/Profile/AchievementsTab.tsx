@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Award, Loader2 } from 'lucide-react';
-import EmptyState from './EmptyState';
-import { userService } from '../../services/userService';
+import { useState, useEffect } from "react";
+import { Award, Loader2 } from "lucide-react";
+import EmptyState from "./EmptyState";
+import { userService } from "../../services/userService";
 
 interface Achievement {
   courseId: string;
@@ -29,10 +29,10 @@ export default function AchievementsTab() {
       if (response.success && response.data) {
         setAchievements(response.data.achievements || []);
       } else {
-        setError('Failed to load achievements');
+        setError("Failed to load achievements");
       }
     } catch (err) {
-      setError('Failed to load achievements');
+      setError("Failed to load achievements");
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,9 @@ export default function AchievementsTab() {
   }
 
   const totalCertificates = achievements.length;
-  const completedCertificates = achievements.filter(a => a.isCompleted).length;
+  const completedCertificates = achievements.filter(
+    (a) => a.isCompleted,
+  ).length;
 
   if (achievements.length === 0) {
     return <EmptyState />;
@@ -70,8 +72,12 @@ export default function AchievementsTab() {
               <Award className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Certificates</p>
-              <p className="text-2xl font-bold text-foreground">{totalCertificates}</p>
+              <p className="text-sm text-muted-foreground">
+                Total Certificates
+              </p>
+              <p className="text-2xl font-bold text-foreground">
+                {totalCertificates}
+              </p>
             </div>
           </div>
         </div>
@@ -82,8 +88,12 @@ export default function AchievementsTab() {
               <Award className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Completed Certificates</p>
-              <p className="text-2xl font-bold text-foreground">{completedCertificates}</p>
+              <p className="text-sm text-muted-foreground">
+                Completed Certificates
+              </p>
+              <p className="text-2xl font-bold text-foreground">
+                {completedCertificates}
+              </p>
             </div>
           </div>
         </div>
@@ -100,11 +110,13 @@ export default function AchievementsTab() {
               className="flex items-center justify-between rounded-lg border bg-card p-4"
             >
               <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                  achievement.isCompleted 
-                    ? 'bg-gradient-to-br from-green-500 to-green-600 text-white' 
-                    : 'bg-muted text-muted-foreground'
-                }`}>
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                    achievement.isCompleted
+                      ? "bg-gradient-to-br from-green-500 to-green-600 text-white"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
                   <Award className="h-5 w-5" />
                 </div>
                 <div>

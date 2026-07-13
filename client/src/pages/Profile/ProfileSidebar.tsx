@@ -33,11 +33,7 @@ export default function ProfileSidebar({ profile }: { profile: Profile }) {
         <div className="-mt-16 flex justify-center">
           <Avatar className="h-32 w-32 ring-4 ring-white shadow-lg">
             <AvatarImage
-              src={
-                profile.avatar_url
-                  ? `${import.meta.env.VITE_BACKEND_BASE_URL}${profile.avatar_url}`
-                  : undefined
-              }
+              src={profile.avatar_url as string}
               alt={profile.full_name}
             />
             <AvatarFallback className="text-4xl">

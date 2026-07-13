@@ -105,7 +105,7 @@ export default function MyCoursesTab() {
                 onClick={() => navigate(`/course-player/${course._id}`)}
               >
                 <img
-                  src={course.thumbnail}
+                  src={course.thumbnailUrl}
                   alt={course.title}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
