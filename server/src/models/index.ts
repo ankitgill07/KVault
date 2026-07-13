@@ -10,11 +10,6 @@ export { default as Lesson } from "./lessonModel.js";
 export { default as Resource } from "./resourceModel.js";
 export { default as Enrollment } from "./enrollmentModel.js";
 export { default as Review } from "./reviewModel.js";
-export { default as Quiz } from "./quizModel.js";
-export { default as Question } from "./questionModel.js";
-export { default as Option } from "./optionModel.js";
-export { default as QuizAttempt } from "./quizAttemptModel.js";
-export { default as Answer } from "./answerModel.js";
 export { default as LessonProgress } from "./lessonProgressModel.js";
 export { default as RecentlyWatched } from "./recentlyWatchedModel.js";
 
@@ -165,11 +160,6 @@ export const getModelByName = (name: string) => {
     Resource: () => import("./resourceModel.js"),
     Enrollment: () => import("./enrollmentModel.js"),
     Review: () => import("./reviewModel.js"),
-    Quiz: () => import("./quizModel.js"),
-    Question: () => import("./questionModel.js"),
-    Option: () => import("./optionModel.js"),
-    QuizAttempt: () => import("./quizAttemptModel.js"),
-    Answer: () => import("./answerModel.js"),
     LessonProgress: () => import("./lessonProgressModel.js"),
     RecentlyWatched: () => import("./recentlyWatchedModel.js"),
   };
