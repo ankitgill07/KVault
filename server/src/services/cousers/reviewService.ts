@@ -90,7 +90,7 @@ export const getReviewById = async (id: string): Promise<any> => {
 
 export const updateReview = async (id: string, data: any): Promise<any> => {
   try {
-    const review = await Review.findByIdAndUpdate(id, data, { new: true });
+    const review = await Review.findByIdAndUpdate(id, data, { returnDocument: "after" });
     if (!review) {
       throw new Error("Review not found");
     }

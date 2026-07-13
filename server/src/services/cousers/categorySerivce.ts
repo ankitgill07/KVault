@@ -36,7 +36,7 @@ export const getCategoryById = async (id: string): Promise<any> => {
 
 export const updateCategory = async (id: string, data: any): Promise<any> => {
   try {
-    return await Category.findByIdAndUpdate(id, data, { new: true });
+    return await Category.findByIdAndUpdate(id, data, { returnDocument: "after" });
   } catch (error: any) {
     if (error.code === 11000) {
       throw new Error("Category with this name or slug already exists");

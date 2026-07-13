@@ -1,4 +1,5 @@
 
+import mongoose from "mongoose";
 import Course from "../../models/courseModel.js";
 import Enrollment from "../../models/enrollmentModel.js";
 import type { CreateEnrollmentBody, UpdateEnrollmentBody } from "../../types/courseTypes.js";
@@ -44,7 +45,7 @@ export const createEnrollment = async (
 export const getEnrollmentById = async (id: string): Promise<any> => {
   try {
     return await Enrollment.findById(id)
-      .populate("course", "title thumbnail")
+      .populate("course", "title thumbnailUrl")
       .populate("student", "name email");
   } catch (error) {
     throw error;
@@ -57,7 +58,7 @@ export const getEnrollmentByStudentAndCourse = async (
 ): Promise<any> => {
   try {
     return await Enrollment.findOne({ student: studentId, course: courseId })
-      .populate("course", "title thumbnail")
+      .populate("course", "title thumbnailUrl")
       .populate("currentLesson");
   } catch (error) {
     throw error;
@@ -69,7 +70,7 @@ export const getEnrollmentsByStudent = async (
 ): Promise<any[]> => {
   try {
     return await Enrollment.find({ student: studentId })
-      .populate("course", "title thumbnail instructor rating")
+      .populate("course", "title thumbnailUrl instructor rating")
       .sort({ lastAccessedAt: -1 });
   } catch (error) {
     throw error;
@@ -82,7 +83,7 @@ export const updateEnrollment = async (
 ): Promise<any> => {
   try {
     const enrollment = await Enrollment.findByIdAndUpdate(id, data, {
-      new: true,
+      returnDocument: "after",
     });
     if (!enrollment) {
       throw new Error("Enrollment not found");
@@ -121,9 +122,39 @@ export const updateEnrollmentProgress = async (
     if (progressData.moduleId)
       enrollment.currentModule = progressData.moduleId as any;
 
-    // Update progress
-    if (progressData.progress !== undefined) {
-      enrollment.progress = progressData.progress;
+    // Add completed lesson
+    if (progressData.lessonId) {
+      const lessonIdStr = progressData.lessonId.toString();
+      if (!enrollment.completedLessons.some((id: any) => id.toString() === lessonIdStr)) {
+        enrollment.completedLessons.push(progressData.lessonId as any);
+      }
+    }
+
+    // Recalculate completed modules
+    const modules = await mongoose.model("Module").find({ course: courseId });
+    const completedModulesList: string[] = [];
+    for (const mod of modules) {
+      const moduleLessons = await mongoose.model("Lesson").find({ module: mod._id });
+      if (moduleLessons.length > 0) {
+        const allCompleted = moduleLessons.every((les) =>
+          enrollment.completedLessons.some((id: any) => id.toString() === les._id.toString())
+        );
+        if (allCompleted) {
+          completedModulesList.push(mod._id.toString());
+        }
+      }
+    }
+    enrollment.completedModules = completedModulesList as any;
+
+    // Recalculate overall course progress
+    const totalLessons = await mongoose.model("Lesson").countDocuments({ course: courseId });
+    if (totalLessons > 0) {
+      enrollment.progress = Math.min(
+        100,
+        Math.round((enrollment.completedLessons.length / totalLessons) * 100)
+      );
+    } else {
+      enrollment.progress = 0;
     }
 
     // Update time spent (accumulate)
@@ -145,7 +176,7 @@ export const updateEnrollmentProgress = async (
     
     // Populate and return
     return await Enrollment.findById(enrollment._id)
-      .populate("course", "title thumbnail")
+      .populate("course", "title thumbnailUrl")
       .populate("student", "name email");
   } catch (error) {
     throw error;
@@ -181,12 +212,19 @@ export const updateVideoProgress = async (
     // Update last accessed time
     enrollment.lastAccessedAt = new Date();
 
+    // Update individual lesson progress in map
+    if (!enrollment.lessonProgress) {
+      enrollment.lessonProgress = new Map();
+    }
+    enrollment.lessonProgress.set(lessonId, currentTime);
+
     await enrollment.save();
     
     return {
       success: true,
       totalTimeSpent: enrollment.totalTimeSpent,
       lastAccessedAt: enrollment.lastAccessedAt,
+      lessonProgress: Object.fromEntries(enrollment.lessonProgress || new Map()),
     };
   } catch (error) {
     throw error;
@@ -201,7 +239,7 @@ export const generateCertificate = async (
     const enrollment = await Enrollment.findOne({
       student: studentId,
       course: courseId,
-    }).populate("course", "title thumbnail").populate("student", "name email");
+    }).populate("course", "title thumbnailUrl").populate("student", "name email");
 
     if (!enrollment) {
       throw new Error("Enrollment not found");

@@ -4,6 +4,8 @@ import Course from "../../models/courseModel.js";
 import Lesson from "../../models/lessonModel.js";
 import Module from "../../models/moduleModel.js";
 import type { CreateModuleBody, UpdateModuleBody } from "../../types/courseTypes.js";
+import { deleteFileFromR2, deleteFolderFromR2 } from "../video/cloudflareR2Service.js";
+import Resource from "../../models/resourceModel.js";
 
 export const createModule = async (data: CreateModuleBody): Promise<any> => {
   try {
@@ -41,7 +43,7 @@ export const updateModule = async (
   data: UpdateModuleBody,
 ): Promise<any> => {
   try {
-    const module = await Module.findByIdAndUpdate(id, data, { new: true });
+    const module = await Module.findByIdAndUpdate(id, data, { returnDocument: "after" });
     if (!module) {
       throw new Error("Module not found");
     }
@@ -57,6 +59,17 @@ export const deleteModule = async (id: string): Promise<void> => {
     if (!module) {
       throw new Error("Module not found");
     }
+
+    // Delete all lesson videos and HLS folders from R2
+    const lessons = await Lesson.find({ module: id });
+    for (const lesson of lessons) {
+      if (lesson.videoKey) {
+        await deleteFileFromR2(lesson.videoKey);
+      }
+      await deleteFolderFromR2(`processed/lectures/${lesson._id}`);
+    }
+    // Delete associated resources
+    await Resource.deleteMany({ lesson: { $in: lessons.map(l => l._id) } });
 
     // Delete all lessons in this module
     await Lesson.deleteMany({ module: id });
