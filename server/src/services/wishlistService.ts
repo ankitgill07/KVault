@@ -6,6 +6,7 @@
 import mongoose from 'mongoose';
 import Wishlist from '../models/wishlistModel.js';
 import Course from '../models/courseModel.js';
+import Cart from '../models/cartModel.js';
 import User from '../models/userModel.js';
 import { AppError } from '../utils/appError.js';
 import type { IWishlist } from '../interfaces/cartWishlistInterfaces.js';
@@ -21,7 +22,7 @@ export const getWishlistByUserId = async (
 ): Promise<IWishlist> => {
   let wishlist = await Wishlist.findOne({ user: toObjectId(userId) }).populate(
     'items.course',
-    'title price thumbnail slug'
+    'title price thumbnailUrl slug'
   );
 
   if (!wishlist) {
@@ -56,6 +57,20 @@ const isEnrolled = user.enrolledCourses?.some(
 
   if (isEnrolled) {
     throw new AppError('You have already purchased this course', 400);
+  }
+
+  // Mutual exclusivity: remove from cart if present
+  try {
+    const cart = await Cart.findOne({ user: toObjectId(userId) });
+    if (cart) {
+      const idx = cart.items.findIndex(item => item.course.toString() === courseId);
+      if (idx !== -1) {
+        cart.items.splice(idx, 1);
+        await cart.save();
+      }
+    }
+  } catch (err) {
+    console.error('[addToWishlist] Failed to remove from cart:', err);
   }
 
   let wishlist = await Wishlist.findOne({ user: toObjectId(userId) });

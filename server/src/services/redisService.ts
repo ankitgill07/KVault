@@ -134,3 +134,116 @@ export const getCachedOtp = async (email: string): Promise<string | null> => {
 export const deleteCachedOtp = async (email: string): Promise<void> => {
   await redis.del(`${OTP_PREFIX}${email}`);
 };
+
+// ─── Active Video Stream Tracking ─────────────────────────────────────────────
+
+const STREAM_PREFIX = "active_stream:";
+const STREAM_TTL = 45; // seconds — heartbeat renews this
+
+export type ConcurrentPolicy = "evict" | "reject";
+
+interface StreamInfo {
+  lessonId: string;
+  startedAt: string;
+}
+
+/**
+ * Returns all active stream session IDs for a user.
+ */
+export const getActiveStreamsForUser = async (
+  userId: string,
+): Promise<{ streamSessionId: string; info: StreamInfo }[]> => {
+  const pattern = `${STREAM_PREFIX}${userId}:*`;
+  const streams: { streamSessionId: string; info: StreamInfo }[] = [];
+  let cursor = "0";
+
+  do {
+    const [nextCursor, keys] = await redis.scan(
+      cursor,
+      "MATCH",
+      pattern,
+      "COUNT",
+      "50",
+    );
+    cursor = nextCursor;
+
+    for (const key of keys) {
+      const data = await redis.hgetall(key);
+      if (data && data.lessonId) {
+        const streamSessionId = key.replace(`${STREAM_PREFIX}${userId}:`, "");
+        streams.push({
+          streamSessionId,
+          info: {
+            lessonId: data.lessonId,
+            startedAt: data.startedAt || "",
+          },
+        });
+      }
+    }
+  } while (cursor !== "0");
+
+  return streams;
+};
+
+/**
+ * Registers a new active stream. Enforces the concurrent stream limit.
+ * Throws an error with message "CONCURRENT_LIMIT_EXCEEDED" if the policy
+ * is "reject" and the limit is exceeded.
+ */
+export const registerActiveStream = async (
+  userId: string,
+  streamSessionId: string,
+  lessonId: string,
+  limit: number = 2,
+  policy: ConcurrentPolicy = "evict",
+): Promise<void> => {
+  const active = await getActiveStreamsForUser(userId);
+
+  if (active.length >= limit) {
+    if (policy === "reject") {
+      throw new Error("CONCURRENT_LIMIT_EXCEEDED");
+    }
+
+    // Evict oldest stream(s) until we're under the limit
+    const sorted = active.sort(
+      (a, b) => Number(a.info.startedAt) - Number(b.info.startedAt),
+    );
+    const toEvict = sorted.slice(0, active.length - limit + 1);
+    for (const stream of toEvict) {
+      await redis.del(`${STREAM_PREFIX}${userId}:${stream.streamSessionId}`);
+    }
+  }
+
+  const key = `${STREAM_PREFIX}${userId}:${streamSessionId}`;
+  await redis.hset(key, {
+    lessonId,
+    startedAt: Date.now().toString(),
+  });
+  await redis.expire(key, STREAM_TTL);
+};
+
+/**
+ * Refreshes the TTL of an active stream (heartbeat).
+ * Returns true if the stream still exists, false if it was evicted/expired.
+ */
+export const refreshStreamHeartbeat = async (
+  userId: string,
+  streamSessionId: string,
+): Promise<boolean> => {
+  const key = `${STREAM_PREFIX}${userId}:${streamSessionId}`;
+  const exists = await redis.exists(key);
+  if (!exists) return false;
+
+  await redis.expire(key, STREAM_TTL);
+  return true;
+};
+
+/**
+ * Explicitly removes an active stream session.
+ */
+export const deleteStreamSession = async (
+  userId: string,
+  streamSessionId: string,
+): Promise<void> => {
+  await redis.del(`${STREAM_PREFIX}${userId}:${streamSessionId}`);
+};
