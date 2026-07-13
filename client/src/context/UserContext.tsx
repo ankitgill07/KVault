@@ -14,6 +14,7 @@ export interface User {
   twitterUrl?: string;
   linkedinUrl?: string;
   websiteUrl?: string;
+  role?: string;
 }
 
 interface UserContextType {
@@ -35,6 +36,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const customSetUser = (u: User | null) => {
+    setUser(u);
+    setIsSignedIn(!!u);
+  };
+
   useEffect(() => {
     const initializeAuth = async () => {
 
@@ -45,7 +51,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser({
             id: userData.id,
             name: userData.name,
-            email: userData.email
+            email: userData.email,
+            role: userData.role
           });
           setIsSignedIn(true);
         } else {
@@ -78,7 +85,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser({
         id: userData.id,
         name: userData.name,
-        email: userData.email
+        email: userData.email,
+        role: userData.role
       });
       setIsSignedIn(true);
       setLoading(false);
@@ -97,7 +105,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser({
         id: userData.id,
         name: userData.name,
-        email: userData.email
+        email: userData.email,
+        role: userData.role
       });
       setIsSignedIn(true);
       setLoading(false);
@@ -148,6 +157,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           twitterUrl: userData.twitterUrl,
           linkedinUrl: userData.linkedinUrl,
           websiteUrl: userData.websiteUrl,
+          role: userData.role,
         });
       }
     } catch (error) {
@@ -156,7 +166,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <UserContext.Provider value={{ user, isSignedIn, loading, login, register, logout, setUser, updateUserProfile, fetchUserProfile }}>
+    <UserContext.Provider value={{ user, isSignedIn, loading, login, register, logout, setUser: customSetUser, updateUserProfile, fetchUserProfile }}>
       {children}
     </UserContext.Provider>
   );
