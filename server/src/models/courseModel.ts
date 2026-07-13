@@ -31,7 +31,6 @@ const CourseSchema = new Schema<ICourse>(
     },
     description: {
       type: String,
-      required: [true, "Course description is required"],
       maxlength: [5000, "Description cannot exceed 5000 characters"],
     },
     shortDescription: {
@@ -65,28 +64,16 @@ const CourseSchema = new Schema<ICourse>(
     },
 
     // ── Media ───────────────────────────────────────────────
-    thumbnail: {
-      type: String,
-      required: [true, "Thumbnail is required"],
-    },
-    previewVideo: {
+    thumbnailUrl: {
       type: String,
       default: null,
     },
-    images: [
-      {
-        type: String,
-      },
-    ],
+    thumbnailKey: {
+      type: String,
+      default: null,
+    },
 
     // ── Instructors ─────────────────────────────────────────
-    instructors: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
-    ],
     primaryInstructor: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -114,8 +101,6 @@ const CourseSchema = new Schema<ICourse>(
     ],
     duration: {
       type: Number,
-      required: [true, "Duration is required"],
-      min: [1, "Duration must be at least 1 minute"],
       default: 0,
     },
     totalLessons: {
@@ -149,7 +134,7 @@ const CourseSchema = new Schema<ICourse>(
     currency: {
       type: String,
       required: [true, "Currency is required"],
-      default: "USD",
+      default: "INR",
       maxlength: [3, "Currency code must be 3 characters"],
     },
     isFree: {
@@ -200,16 +185,7 @@ const CourseSchema = new Schema<ICourse>(
     },
 
     // ── SEO ─────────────────────────────────────────────────
-    metaTitle: {
-      type: String,
-      maxlength: [200, "Meta title cannot exceed 200 characters"],
-      default: null,
-    },
-    metaDescription: {
-      type: String,
-      maxlength: [500, "Meta description cannot exceed 500 characters"],
-      default: null,
-    },
+
     metaKeywords: [
       {
         type: String,
@@ -226,12 +202,6 @@ const CourseSchema = new Schema<ICourse>(
       type: Boolean,
       default: true,
     },
-    prerequisites: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Course",
-      },
-    ],
   },
   {
     timestamps: true,

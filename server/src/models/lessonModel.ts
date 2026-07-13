@@ -1,6 +1,15 @@
 import mongoose, { Schema, Model } from "mongoose";
-import type { ILesson, IModule, ICourse, IResource, IQuiz } from "../interfaces/courseInterfaces.js";
-import { LessonContentType, VideoProvider } from "../interfaces/courseInterfaces.js";
+import type {
+  ILesson,
+  IModule,
+  ICourse,
+  IResource,
+  IQuiz,
+} from "../interfaces/courseInterfaces.js";
+import {
+  LessonContentType,
+  VideoProvider,
+} from "../interfaces/courseInterfaces.js";
 
 const LessonSchema = new Schema<ILesson>(
   {
@@ -28,7 +37,7 @@ const LessonSchema = new Schema<ILesson>(
     order: {
       type: Number,
       required: [true, "Lesson order is required"],
-      min: [1, "Order must be at least 1"],
+      min: [0, "Order must be at least 1"],
     },
 
     // ── Content Type ────────────────────────────────────────
@@ -43,10 +52,14 @@ const LessonSchema = new Schema<ILesson>(
       type: String,
       default: null,
     },
-    videoDuration: {
-      type: Number,
-      min: [0, "Video duration cannot be negative"],
-      default: 0,
+    videoKey: {
+      type: String,
+      default: null,
+    },
+    videoStatus: {
+      type: String,
+      enum: ["pending", "processing", "ready", "failed"],
+      default: null,
     },
     videoProvider: {
       type: String,
@@ -80,10 +93,10 @@ const LessonSchema = new Schema<ILesson>(
     },
 
     // ── Lesson Settings ─────────────────────────────────────
-    duration: {
+    durationSeconds: {
       type: Number,
       required: [true, "Duration is required"],
-      min: [1, "Duration must be at least 1 minute"],
+      min: [0, "Duration cannot be negative"],
       default: 0,
     },
     isPublished: {
@@ -181,8 +194,9 @@ LessonSchema.post("findOneAndDelete", async function (doc) {
 // ─── Instance Methods ─────────────────────────────────────────────────────────
 
 LessonSchema.methods.getDurationFormatted = function (): string {
-  const hours = Math.floor(this.duration / 60);
-  const minutes = this.duration % 60;
+  const totalSeconds = this.durationSeconds || 0;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
 
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
@@ -191,11 +205,11 @@ LessonSchema.methods.getDurationFormatted = function (): string {
 };
 
 LessonSchema.methods.getVideoDurationFormatted = function (): string {
-  if (!this.videoDuration) return "0:00";
+  if (!this.durationSeconds) return "0:00";
 
-  const hours = Math.floor(this.videoDuration / 3600);
-  const minutes = Math.floor((this.videoDuration % 3600) / 60);
-  const seconds = this.videoDuration % 60;
+  const hours = Math.floor(this.durationSeconds / 3600);
+  const minutes = Math.floor((this.durationSeconds % 3600) / 60);
+  const seconds = this.durationSeconds % 60;
 
   if (hours > 0) {
     return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;

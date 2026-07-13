@@ -42,6 +42,10 @@ const UserSchema = new Schema<IUser>(
       type: String,
       default: null,
     },
+    avatarKey: {
+      type: String,
+      default: null,
+    },
     bio: {
       type: String,
       maxlength: [500, "Bio cannot exceed 500 characters"],

@@ -45,6 +45,11 @@ const EnrollmentSchema = new Schema<IEnrollment>(
       ref: "Module",
       default: null,
     },
+    lessonProgress: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
 
     // ── Time Tracking ───────────────────────────────────────
     totalTimeSpent: {

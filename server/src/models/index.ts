@@ -15,6 +15,8 @@ export { default as Question } from "./questionModel.js";
 export { default as Option } from "./optionModel.js";
 export { default as QuizAttempt } from "./quizAttemptModel.js";
 export { default as Answer } from "./answerModel.js";
+export { default as LessonProgress } from "./lessonProgressModel.js";
+export { default as RecentlyWatched } from "./recentlyWatchedModel.js";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -32,6 +34,8 @@ export type {
   IQuizAttempt,
   IAnswer,
 } from "../interfaces/courseInterfaces.js";
+export type { ILessonProgress } from "./lessonProgressModel.js";
+export type { IRecentlyWatched } from "./recentlyWatchedModel.js";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -60,6 +64,8 @@ export const MODEL_NAMES = {
   OPTION: "Option",
   QUIZ_ATTEMPT: "QuizAttempt",
   ANSWER: "Answer",
+  LESSON_PROGRESS: "LessonProgress",
+  RECENTLY_WATCHED: "RecentlyWatched",
 } as const;
 
 // ─── Relationship Map ─────────────────────────────────────────────────────────
@@ -75,9 +81,7 @@ export const RELATIONSHIPS = {
   // Course relationships
   Course: {
     category: "Category",
-    instructors: ["User"],
     primaryInstructor: "User",
-    prerequisites: ["Course"],
   },
 
   // Module relationships
@@ -166,6 +170,8 @@ export const getModelByName = (name: string) => {
     Option: () => import("./optionModel.js"),
     QuizAttempt: () => import("./quizAttemptModel.js"),
     Answer: () => import("./answerModel.js"),
+    LessonProgress: () => import("./lessonProgressModel.js"),
+    RecentlyWatched: () => import("./recentlyWatchedModel.js"),
   };
 
   const modelLoader = models[name];
