@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as cartController from '../controllers/cartController.js';
+import { createOrder as createPaymentCheckoutOrder } from '../controllers/paymentController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 import {
   AddToCartSchema,
@@ -12,6 +13,6 @@ const router = Router();
 router.get('/', authenticate, cartController.getCart);
 router.post('/items', authenticate, validateBody(AddToCartSchema), cartController.addToCart);
 router.delete('/items/{:courseId}', authenticate, cartController.removeFromCart);
-router.post('/checkout', authenticate, cartController.checkout);
+router.post('/checkout', authenticate, createPaymentCheckoutOrder);
 
 export default router;
