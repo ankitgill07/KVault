@@ -34,7 +34,7 @@ export interface CourseData {
   _id: string;
   title: string;
   description: string;
-  thumbnail: string;
+  thumbnailUrl?: string;
   totalLessons: number;
   totalModules: number;
   duration: number; // in minutes
@@ -50,6 +50,7 @@ export interface EnrollmentData {
   totalTimeSpent: number;
   lastAccessedAt: string;
   isCompleted: boolean;
+  lessonProgress?: Record<string, number>;
 }
 
 export interface CoursePlayerProps {
