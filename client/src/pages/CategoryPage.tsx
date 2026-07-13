@@ -5,20 +5,54 @@ import { Search, SlidersHorizontal, BookOpen, Clock, Star, Heart, ShoppingBag, E
 
 import { type Category } from '../api/categoryApi';
 import useAllCourses from '../hooks/useAllCourses';
-import CourseCard from '../components/CourseCard';
+import CourseCard from '../components/Cards/CourseCard';
 import type { Course } from '../api/courseApi';
 import { categoryService } from '../services/categoryService';
 
+const normalizeCategoryValue = (value?: string | null) =>
+  (value || '').trim().toLowerCase();
 
+const slugifyCategoryValue = (value?: string | null) =>
+  normalizeCategoryValue(value)
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const getCourseCategoryValues = (course: Course) => {
+  const category = course.category;
+
+  if (!category) return [];
+
+  if (typeof category === 'string') {
+    return [
+      normalizeCategoryValue(category),
+      slugifyCategoryValue(category),
+    ];
+  }
+
+  return [
+    normalizeCategoryValue(category._id),
+    normalizeCategoryValue(category.id),
+    normalizeCategoryValue(category.name),
+    normalizeCategoryValue(category.slug),
+    slugifyCategoryValue(category.name),
+  ];
+};
 
 export const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const {courses }= useAllCourses()
   const [category, setCategory] = useState<Category[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(true);
   const getCategories = async () => {
-    const data = await categoryService.getAllCategories();
-    setCategory(data);
+    try {
+      setCategoryLoading(true);
+      const data = await categoryService.getAllCategories();
+      setCategory(data);
+    } finally {
+      setCategoryLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -38,6 +72,15 @@ export const CategoryPage = () => {
     setCurrentPage(1);
   }, [slug]);
 
+  if (categoryLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+        <div className="w-12 h-12 border-4 border-brand-purple border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="text-xs text-brand-gray mt-4 font-semibold">Loading category...</p>
+      </div>
+    );
+  }
+
   if (!activeCategory) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
@@ -55,8 +98,20 @@ export const CategoryPage = () => {
 
   // Filter courses by this category and filters
   const filteredCourses = courses.filter(course => {
-    // Category match
+    const categoryMatches = new Set(
+      [
+        activeCategory._id,
+        activeCategory.name,
+        activeCategory.slug,
+        slugifyCategoryValue(activeCategory.name),
+      ]
+        .filter(Boolean)
+        .map((value) => normalizeCategoryValue(value as string)),
+    );
 
+    const matchesCategory = getCourseCategoryValues(course).some((value) =>
+      categoryMatches.has(value),
+    );
 
     const matchesLevel = selectedLevel 
       ? course.level.toLowerCase() === selectedLevel.toLowerCase()
@@ -70,7 +125,7 @@ export const CategoryPage = () => {
       ? course.rating >= minRating
       : true;
 
-
+    return matchesCategory && matchesLevel && matchesPrice && matchesRating;
   }).sort((a, b) => {
     if (sortBy === 'popular') return b.enrollmentCount - a.enrollmentCount;
     if (sortBy === 'rating') return b.rating - a.rating;
@@ -225,9 +280,9 @@ export const CategoryPage = () => {
 
           {/* Grid */}
           {paginatedCourses.length > 0 ? (
-           <div>
+           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredCourses.map((course : Course) => (
-            <CourseCard key={course._id} course={course} />
+             <CourseCard key={course._id} course={course} />
           ))}
            </div>
           ) : (

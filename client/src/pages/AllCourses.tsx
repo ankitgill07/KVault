@@ -18,9 +18,37 @@ import { categoryService } from "../services/categoryService";
 import { useAllCourses } from "../hooks/useAllCourses";
 import { type Category } from "../api/categoryApi";
 import type { Course } from "../api/courseApi";
-import CourseCard from "../components/CourseCard";
+import CourseCard from "../components/Cards/CourseCard";
 
+const normalizeCategoryValue = (value?: string | null) =>
+  (value || "").trim().toLowerCase();
 
+const slugifyCategoryValue = (value?: string | null) =>
+  normalizeCategoryValue(value)
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const getCourseCategoryValues = (course: Course) => {
+  const category = course.category;
+
+  if (!category) return [];
+
+  if (typeof category === "string") {
+    return [
+      normalizeCategoryValue(category),
+      slugifyCategoryValue(category),
+    ];
+  }
+
+  return [
+    normalizeCategoryValue(category._id),
+    normalizeCategoryValue(category.id),
+    normalizeCategoryValue(category.name),
+    normalizeCategoryValue(category.slug),
+    slugifyCategoryValue(category.name),
+  ];
+};
 
 export const AllCourses = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -66,7 +94,18 @@ export const AllCourses = () => {
   // Filter courses locally when filters change
   useEffect(() => {
     filterCourses();
-  }, [selectedCategory, selectedLevel, sortBy, searchQuery, allCourses]);
+  }, [
+    selectedCategory,
+    selectedLevel,
+    sortBy,
+    searchQuery,
+    allCourses,
+    categories,
+    coursesLoading,
+    coursesError,
+    maxPrice,
+    minRating,
+  ]);
 
   const fetchCategories = async () => {
     try {
@@ -99,17 +138,23 @@ export const AllCourses = () => {
           (cat) =>
             cat.slug === selectedCategory || cat.name === selectedCategory,
         );
-        if (category) {
-          filtered = filtered.filter(
-            (course) => course.category === category.name,
-          );
-        } else {
-          // Direct match if category not found in list
-          filtered = filtered.filter(
-            (course) =>
-              course.category.toLowerCase() === selectedCategory.toLowerCase(),
-          );
-        }
+        const categoryMatches = new Set(
+          [
+            selectedCategory,
+            category?._id,
+            category?.name,
+            category?.slug,
+            slugifyCategoryValue(category?.name),
+          ]
+            .filter(Boolean)
+            .map((value) => normalizeCategoryValue(value as string)),
+        );
+
+        filtered = filtered.filter((course) =>
+          getCourseCategoryValues(course).some((value) =>
+            categoryMatches.has(value),
+          ),
+        );
       }
 
       if (selectedLevel) {
@@ -124,7 +169,9 @@ export const AllCourses = () => {
           (course) =>
             course.title.toLowerCase().includes(query) ||
             course.description.toLowerCase().includes(query) ||
-            course.category.toLowerCase().includes(query),
+            getCourseCategoryValues(course).some((value) =>
+              value.includes(query),
+            ),
         );
       }
 
@@ -215,7 +262,7 @@ export const AllCourses = () => {
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         {/* Sidebar Filters - Desktop */}
         <aside className="w-full lg:w-3/12 space-y-6 hidden lg:block">
-          <div className="bg-white rounded-3xl border border-brand-border premium-shadow p-6 space-y-6">
+          <div className="bg-bg-card rounded-3xl border border-brand-border premium-shadow p-6 space-y-6">
             <div className="flex items-center justify-between border-b border-brand-border/60 pb-4">
               <span className="font-extrabold text-sm text-brand-navy flex items-center gap-1.5">
                 <SlidersHorizontal className="w-4.5 h-4.5 text-brand-purple" />
@@ -247,7 +294,7 @@ export const AllCourses = () => {
                   placeholder="Keyword..."
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="w-full pl-10 pr-4 py-2 bg-bg-secondary border border-transparent rounded-2xl text-xs font-semibold focus:bg-white"
+                  className="w-full pl-10 pr-4 py-2 bg-bg-secondary border border-transparent rounded-2xl text-xs font-semibold focus:bg-bg-card"
                 />
               </div>
             </div>
@@ -388,7 +435,7 @@ export const AllCourses = () => {
         {/* Main Content Grid & Top Filters Bar */}
         <main className="w-full lg:w-9/12">
           {/* Filters & Sorting Bar */}
-          <div className="bg-white rounded-3xl border border-brand-border premium-shadow p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
+          <div className="bg-bg-card rounded-3xl border border-brand-border premium-shadow p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowMobileFilters(true)}
@@ -423,7 +470,7 @@ export const AllCourses = () => {
 
           {/* Courses Grid */}
           {loading ? (
-            <div className="text-center py-16 bg-white border border-brand-border rounded-[32px] premium-shadow">
+            <div className="text-center py-16 bg-bg-card border border-brand-border rounded-[32px] premium-shadow">
               <div className="w-16 h-16 bg-brand-purple/10 rounded-full flex items-center justify-center mx-auto text-brand-purple mb-4">
                 <div className="w-8 h-8 border-4 border-brand-purple border-t-transparent rounded-full animate-spin"></div>
               </div>
@@ -433,9 +480,9 @@ export const AllCourses = () => {
               <p className="text-xs text-brand-gray mt-2 max-w-sm mx-auto font-medium">
                 Please wait while we fetch the latest courses for you.
               </p>
-            </div>
+              </div>
           ) : error ? (
-            <div className="text-center py-16 bg-white border border-brand-border rounded-[32px] premium-shadow">
+            <div className="text-center py-16 bg-bg-card border border-brand-border rounded-[32px] premium-shadow">
               <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto text-red-500 mb-4">
                 <X className="w-8 h-8" />
               </div>
@@ -453,13 +500,13 @@ export const AllCourses = () => {
               </button>
             </div>
           ) : filteredCourses.length > 0 ? (
-           <div>
+           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredCoursesList?.map((course : Course) => (
-            <CourseCard key={course._id} course={course} />
+             <CourseCard key={course._id} course={course} />
           ))}
            </div>
           ) : (
-            <div className="text-center py-16 bg-white border border-brand-border rounded-[32px] premium-shadow">
+            <div className="text-center py-16 bg-bg-card border border-brand-border rounded-[32px] premium-shadow">
               <div className="w-16 h-16 bg-brand-purple/10 rounded-full flex items-center justify-center mx-auto text-brand-purple mb-4">
                 <SlidersHorizontal className="w-8 h-8" />
               </div>
@@ -498,7 +545,7 @@ export const AllCourses = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="w-80 h-full bg-white relative z-10 p-6 flex flex-col justify-between border-l border-brand-border overflow-y-auto"
+              className="w-80 h-full bg-bg-card relative z-10 p-6 flex flex-col justify-between border-l border-brand-border overflow-y-auto"
             >
               <div className="space-y-6">
                 <div className="flex items-center justify-between border-b border-brand-border/60 pb-4">

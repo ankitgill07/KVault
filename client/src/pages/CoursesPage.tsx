@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { courseService } from '../services/courseService';
-import CourseCard from '../components/CourseCard';
+import CourseCard from '../components/Cards/CourseCard';
 import { categoryService } from '../services/categoryService';
 import type { Category, Course } from '../api/courseApi';
 

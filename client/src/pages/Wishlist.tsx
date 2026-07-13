@@ -73,7 +73,7 @@ export const Wishlist = () => {
               (item: {
                 courseId: string;
                 title: string;
-                thumbnail: string;
+                thumbnailUrl: string;
                 price: number;
                 slug: string;
               }) => {
@@ -85,14 +85,14 @@ export const Wishlist = () => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-white rounded-[32px] border border-brand-border premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-brand-purple/20 flex flex-col h-full"
+                    className="bg-bg-card rounded-[32px] border border-brand-border premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-brand-purple/20 flex flex-col h-full"
                   >
                     {/* Thumbnail Banner */}
                     <div
                       className="h-40 w-full relative flex items-center justify-center text-white p-5 shrink-0 bg-cover bg-center"
                       style={{
-                        backgroundImage: item.thumbnail
-                          ? `url(${item.thumbnail})`
+                        backgroundImage: item.thumbnailUrl
+                          ? `url(${item.thumbnailUrl})`
                           : "linear-gradient(135deg, #7c3aed, #2563eb)",
                       }}
                     >
@@ -161,7 +161,7 @@ export const Wishlist = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="text-center py-20 bg-white border border-brand-border rounded-[32px] premium-shadow max-w-xl mx-auto space-y-6"
+            className="text-center py-20 bg-bg-card border border-brand-border rounded-[32px] premium-shadow max-w-xl mx-auto space-y-6"
           >
             <div className="w-20 h-20 bg-brand-purple/10 rounded-full flex items-center justify-center mx-auto text-brand-purple">
               <Heart className="w-9 h-9" />

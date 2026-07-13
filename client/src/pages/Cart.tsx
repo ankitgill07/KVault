@@ -48,12 +48,19 @@ export const Cart = () => {
   }, [dispatch]);
   // ─── Calculations ────────────────────────────────────────────────────────────
 
-  const subtotal = cartItems.reduce(
-    (sum: number, item: { price: number }) => sum + item.price,
+  // Price calculations
+  const totalCourses = cartItems.length;
+  const originalTotal = cartItems.reduce(
+    (sum: number, item: any) => sum + (item.originalPrice || item.price || 0),
     0,
   );
-  const discountAmount = Math.round(subtotal * (discountPercent / 100));
-  const total = subtotal - discountAmount;
+  const discountTotal = cartItems.reduce(
+    (sum: number, item: any) => sum + (item.price || 0),
+    0,
+  );
+  const totalSavings = originalTotal - discountTotal;
+  const couponDiscount = Math.round(discountTotal * (discountPercent / 100));
+  const finalPayable = discountTotal - couponDiscount;
 
   // ─── Coupon ──────────────────────────────────────────────────────────────────
 
@@ -201,7 +208,7 @@ export const Cart = () => {
                     (item: {
                       courseId: string;
                       title: string;
-                      thumbnail: string;
+                      thumbnailUrl: string;
                       price: number;
                       slug: string;
                     }) => {
@@ -215,13 +222,13 @@ export const Cart = () => {
                           initial={{ opacity: 0, y: 15 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -50 }}
-                          className="bg-white rounded-3xl border border-brand-border premium-shadow p-5 flex flex-col sm:flex-row gap-5 hover:border-brand-purple/20 transition-colors"
+                          className="bg-bg-card rounded-3xl border border-brand-border premium-shadow p-5 flex flex-col sm:flex-row gap-5 hover:border-brand-purple/20 transition-colors"
                         >
                           <div
                             className="h-28 w-full sm:w-44 rounded-2xl flex items-center justify-center text-white shrink-0 font-extrabold text-xs text-center p-4 relative bg-cover bg-center"
                             style={{
-                              backgroundImage: item.thumbnail
-                                ? `url(${item.thumbnail})`
+                              backgroundImage: item.thumbnailUrl
+                                ? `url(${item.thumbnailUrl})`
                                 : "linear-gradient(135deg, #7c3aed, #2563eb)",
                             }}
                           >
@@ -235,6 +242,17 @@ export const Cart = () => {
                             <h3 className="font-extrabold text-sm text-brand-navy truncate leading-snug">
                               {item.title}
                             </h3>
+
+                            <div className="flex items-center gap-2 mt-1">
+                              {(item as any).originalPrice > (item as any).price ? (
+                                <>
+                                  <span className="text-sm font-extrabold text-brand-navy">₹{(item as any).price}</span>
+                                  <span className="text-xs text-brand-gray line-through">₹{(item as any).originalPrice}</span>
+                                </>
+                              ) : (
+                                <span className="text-sm font-extrabold text-brand-navy">₹{item.price}</span>
+                              )}
+                            </div>
 
                             <div className="flex items-center gap-4 mt-4 pt-3 border-t border-brand-border/60">
                               <button
@@ -266,59 +284,87 @@ export const Cart = () => {
               </div>
 
               {/* Right */}
-              <aside className="w-full lg:w-4/12">
-                <form onSubmit={applyCoupon} className="space-y-2">
-                  <label className="text-[10px] font-extrabold text-brand-gray uppercase tracking-wider block">
-                    Apply Promo Coupon
-                  </label>
+              <aside className="w-full lg:w-4/12 space-y-5">
+                {/* Order Summary Card */}
+                <div className="bg-bg-card rounded-3xl border border-brand-border premium-shadow p-6 space-y-5">
+                  <h3 className="font-extrabold text-sm text-brand-navy border-b border-brand-border/60 pb-3">
+                    Order Summary
+                  </h3>
 
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-gray" />
-
-                      <input
-                        type="text"
-                        placeholder="e.g. KVAULT50"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 bg-bg-secondary border border-transparent rounded-xl text-xs font-bold uppercase focus:bg-white"
-                      />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-brand-gray font-semibold">Courses ({totalCourses})</span>
+                      <span className="font-bold text-brand-navy">₹{originalTotal.toFixed(2)}</span>
                     </div>
 
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-brand-purple hover:bg-brand-purple-light text-white text-xs font-bold rounded-xl"
-                    >
-                      Apply
-                    </button>
+                    {totalSavings > 0 && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-emerald-600 font-semibold">Discount</span>
+                        <span className="font-bold text-emerald-600">−₹{totalSavings.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    {couponDiscount > 0 && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-brand-purple font-semibold">Coupon ({discountPercent}%)</span>
+                        <span className="font-bold text-brand-purple">−₹{couponDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <div className="border-t border-brand-border/60 pt-3 flex items-center justify-between">
+                      <span className="text-sm font-extrabold text-brand-navy">Total</span>
+                      <span className="text-xl font-black text-brand-navy">₹{finalPayable.toFixed(2)}</span>
+                    </div>
                   </div>
+                </div>
 
-                  {couponError && (
-                    <p className="text-[10px] text-red-500 font-bold">
-                      {couponError}
-                    </p>
-                  )}
+                {/* Coupon Section */}
+                <div className="bg-bg-card rounded-3xl border border-brand-border premium-shadow p-6">
+                  <form onSubmit={applyCoupon} className="space-y-3">
+                    <label className="text-[10px] font-extrabold text-brand-gray uppercase tracking-wider block">
+                      Apply Promo Coupon
+                    </label>
 
-                  {couponSuccess && (
-                    <p className="text-[10px] text-emerald-600 font-bold">
-                      {couponSuccess}
-                    </p>
-                  )}
-                </form>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-gray" />
+                        <input
+                          type="text"
+                          placeholder="e.g. KVAULT50"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2.5 bg-bg-secondary border border-transparent rounded-xl text-xs font-bold uppercase focus:bg-bg-card"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 bg-brand-purple hover:bg-brand-purple-light text-white text-xs font-bold rounded-xl transition-colors"
+                      >
+                        Apply
+                      </button>
+                    </div>
 
-                <div className="space-y-3.5 pt-4">
+                    {couponError && (
+                      <p className="text-[10px] text-red-500 font-bold">{couponError}</p>
+                    )}
+                    {couponSuccess && (
+                      <p className="text-[10px] text-emerald-600 font-bold">{couponSuccess}</p>
+                    )}
+                  </form>
+                </div>
+
+                {/* Checkout Actions */}
+                <div className="space-y-3">
                   {paymentError && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-                      <p className="text-xs text-red-600 font-semibold">
-                        {paymentError}
-                      </p>
+                      <p className="text-xs text-red-600 font-semibold">{paymentError}</p>
                     </div>
                   )}
 
                   <button
                     onClick={handleCheckout}
                     disabled={isProcessingPayment || cartItems.length === 0}
-                    className="w-full py-4 rounded-[20px] bg-gradient-to-r from-brand-purple to-brand-blue text-white text-xs font-extrabold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-4 rounded-[20px] bg-gradient-to-r from-brand-purple to-brand-blue text-white text-xs font-extrabold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed premium-shadow hover:shadow-purple transition-shadow"
                   >
                     {isProcessingPayment ? (
                       <>
@@ -327,7 +373,7 @@ export const Cart = () => {
                       </>
                     ) : (
                       <>
-                        <span>Proceed To Checkout</span>
+                        <span>Proceed To Checkout — ₹{finalPayable.toFixed(2)}</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
@@ -335,7 +381,7 @@ export const Cart = () => {
 
                   <Link
                     to="/courses"
-                    className="w-full py-3 border border-brand-border rounded-[20px] text-xs font-bold text-brand-navy hover:bg-bg-secondary flex items-center justify-center"
+                    className="w-full py-3 border border-brand-border rounded-[20px] text-xs font-bold text-brand-navy hover:bg-bg-secondary flex items-center justify-center transition-colors"
                   >
                     Continue Shopping
                   </Link>
@@ -348,7 +394,7 @@ export const Cart = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center py-20 bg-white border border-brand-border rounded-[32px] premium-shadow max-w-xl mx-auto space-y-6"
+              className="text-center py-20 bg-bg-card border border-brand-border rounded-[32px] premium-shadow max-w-xl mx-auto space-y-6"
             >
               <div className="w-20 h-20 bg-brand-purple/10 rounded-full flex items-center justify-center mx-auto text-brand-purple">
                 <ShoppingBag className="w-9 h-9" />
@@ -381,7 +427,7 @@ export const Cart = () => {
           animate={{ opacity: 1, y: 0 }}
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
         >
-          <div className="bg-white rounded-3xl p-8 max-w-md mx-4 text-center space-y-4">
+          <div className="bg-bg-card rounded-3xl p-8 max-w-md mx-4 text-center space-y-4">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
               <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

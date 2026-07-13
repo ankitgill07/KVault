@@ -24,24 +24,35 @@ import { lessonService } from "../services/lessonService";
 import type { Course } from "../api/courseApi";
 import type { Module } from "../api/moduleApi";
 import type { Lesson } from "../api/lessonApi";
-import type { RootState, AppDispatch } from "../store";
+import type { AppDispatch } from "../store";
 import {
-  fetchCart,
   addToCart as addToCartAction,
   removeFromCart as removeFromCartAction,
   selectIsInCart,
 } from "../store/cartSlice";
 import {
-  fetchWishlist,
   addToWishlist as addToWishlistAction,
   removeFromWishlist as removeFromWishlistAction,
   selectIsInWishlist,
 } from "../store/wishlistSlice";
+import {
+  fetchMyEnrollments,
+  selectEnrollmentByCourseId,
+} from "../store/enrollmentSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { VideoPlayer } from "../components/VideoPlayer";
+import { formatDuration } from "../utils/Helping";
+import { useUser } from "../context/UserContext";
+import { getCoursePlayerPath } from "../routes/routeConfig";
+
+const getLessonId = (lesson: unknown): string | undefined => {
+  return typeof lesson === "string" ? lesson : (lesson as any)?._id;
+};
 
 export const CourseDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { isSignedIn } = useUser();
 
   const [course, setCourse] = useState<Course>({} as Course);
   const [chapters, setChapters] = useState<Module[]>([]);
@@ -51,12 +62,28 @@ export const CourseDetail = () => {
 
   const inCart = useSelector(selectIsInCart(course._id));
   const inWishlist = useSelector(selectIsInWishlist(course._id));
+  const enrollment = useSelector(selectEnrollmentByCourseId(course._id));
+  const isEnrolled = !!enrollment;
   // Accordion curriculum control state (module active ids)
   const [activeModules, setActiveModules] = useState<string[]>([]);
 
-  // Video player state
-  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>("");
+  // Video player state - track the preview lesson object
+  const [previewLesson, setPreviewLesson] = useState<Lesson | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+
+  // Stub functions for preview mode (no progress/completion tracking needed)
+  const handlePreviewComplete = async (lessonId: string) => {
+    // No-op for preview - we don't track completion in preview mode
+    console.log("Preview completed for lesson:", lessonId);
+  };
+
+  const handlePreviewProgress = async (
+    currentTime: number,
+    duration: number,
+  ) => {
+    // No-op for preview - we don't track progress in preview mode
+    console.log("Preview progress:", currentTime, duration);
+  };
 
   useEffect(() => {
     if (slug) {
@@ -64,7 +91,17 @@ export const CourseDetail = () => {
     }
   }, [slug]);
 
+  useEffect(() => {
+    if (isSignedIn) {
+      dispatch(fetchMyEnrollments());
+    }
+  }, [dispatch, isSignedIn]);
+
   const handleWishlistClick = async () => {
+    if (!isSignedIn) {
+      navigate("/login");
+      return;
+    }
     if (inWishlist) {
       dispatch(removeFromWishlistAction(course._id));
     } else {
@@ -73,11 +110,38 @@ export const CourseDetail = () => {
   };
 
   const handleCartClick = async () => {
+    if (!isSignedIn) {
+      navigate("/login");
+      return;
+    }
     if (inCart) {
       dispatch(removeFromCartAction(course._id));
     } else {
       dispatch(addToCartAction(course._id));
     }
+  };
+
+  const handleBuyNow = async () => {
+    if (!isSignedIn) {
+      navigate("/login");
+      return;
+    }
+    try {
+      if (!inCart) {
+        await dispatch(addToCartAction(course._id));
+      }
+      navigate("/cart");
+    } catch (err: any) {
+      console.error("Error adding to cart:", err);
+    }
+  };
+
+  const firstLessonId = getLessonId(chapters[0]?.lessons?.[0]);
+  const continueLessonId = getLessonId(enrollment?.currentLesson) || firstLessonId;
+  const continueLearningPath = getCoursePlayerPath(course.slug, continueLessonId);
+
+  const handleContinueLearning = () => {
+    navigate(continueLearningPath);
   };
 
   const fetchCourseDetail = async (courseSlug: string) => {
@@ -137,21 +201,6 @@ export const CourseDetail = () => {
     }
   };
 
-  const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins}m`;
-  };
-
-  const formatLessonDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
@@ -195,32 +244,40 @@ export const CourseDetail = () => {
   };
 
   const handlePlayLesson = (lesson: Lesson) => {
-    if (lesson.isPreview && course?.previewVideo) {
-      setCurrentVideoUrl(course.previewVideo);
+    if (lesson.isPreview && lesson.videoUrl) {
+      setPreviewLesson(lesson);
       setIsPlaying(true);
     }
   };
 
   const handleCloseVideo = () => {
     setIsPlaying(false);
-    setCurrentVideoUrl("");
+    setPreviewLesson(null);
   };
 
-  // For now, using placeholder instructor data - in production, fetch from API
-  const instructorName = course.primaryInstructor
-    ? typeof course.primaryInstructor === "object"
+  // Fetch instructor details from course primaryInstructor
+  const instructorName =
+    course.primaryInstructor && typeof course.primaryInstructor === "object"
       ? course.primaryInstructor.name
-      : "Instructor"
-    : "Course Instructor";
+      : "Instructor";
   const instructorRole = "Expert Instructor";
-  const instructorBio = "Learn from the best in the industry.";
+  const instructorBio =
+    course.primaryInstructor &&
+    typeof course.primaryInstructor === "object" &&
+    course.primaryInstructor.bio
+      ? course.primaryInstructor.bio
+      : "Learn from the best in the industry.";
   const instructorAvatar =
-    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150";
+    course.primaryInstructor &&
+    typeof course.primaryInstructor === "object" &&
+    course.primaryInstructor.avatar
+      ? course.primaryInstructor.avatar
+      : "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150";
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 w-full relative">
       {/* Main Course Header / Hero Block */}
-      <div className="mt-4 mb-12 bg-gradient-to-tr from-brand-navy to-brand-navy/90 text-white rounded-[32px] p-6 sm:p-10 relative overflow-hidden border border-brand-navy/50 premium-shadow">
+      <div className="mt-4 mb-12 bg-[#111827] dark:bg-bg-card text-white rounded-[32px] p-6 sm:p-10 relative overflow-hidden border border-transparent dark:border-brand-border premium-shadow">
         {/* Decorative Light Glows */}
         <div className="absolute top-1/4 right-0 w-96 h-96 bg-brand-purple/10 rounded-full blur-[100px]"></div>
         <div className="absolute bottom-0 left-10 w-80 h-80 bg-brand-blue/15 rounded-full blur-[80px]"></div>
@@ -247,7 +304,7 @@ export const CourseDetail = () => {
             {course.title}
           </h1>
 
-          <p className="text-sm sm:text-base text-white/80 font-medium leading-relaxed max-w-2xl">
+          <p className="text-sm sm:text-base text-white/80 line-clamp-3 font-medium leading-relaxed max-w-2xl">
             {course.description}
           </p>
 
@@ -278,31 +335,46 @@ export const CourseDetail = () => {
 
           {/* CTAs on Mobile (Hidden on Desktop because of Sticky Card) */}
           <div className="flex flex-wrap items-center gap-3 pt-4 lg:hidden">
-            <button className="flex-1 min-w-[120px] py-3 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-blue text-white text-xs font-extrabold hover:opacity-95 cursor-pointer text-center">
-              Buy Now
-            </button>
-            <button
-              onClick={handleCartClick}
-              className={`p-3 rounded-2xl border transition-colors cursor-pointer ${
-                inCart
-                  ? "bg-brand-blue/20 border-brand-blue/30 text-white"
-                  : "bg-white/10 border-white/20 hover:bg-white/20 text-white"
-              }`}
-            >
-              <ShoppingBag className="w-4.5 h-4.5" />
-            </button>
-            <button
-              onClick={handleWishlistClick}
-              className={`p-3 rounded-2xl border transition-colors cursor-pointer ${
-                inWishlist
-                  ? "bg-red-500/20 border-red-500/30 text-red-500"
-                  : "bg-white/10 border-white/20 hover:bg-white/20 text-white"
-              }`}
-            >
-              <Heart
-                className={`w-4.5 h-4.5 ${inWishlist ? "fill-red-500" : ""}`}
-              />
-            </button>
+            {isEnrolled ? (
+              <button
+                onClick={handleContinueLearning}
+                className="flex-1 min-w-[160px] py-3 rounded-2xl bg-green-600 text-white text-xs font-extrabold hover:bg-green-700 cursor-pointer text-center flex items-center justify-center gap-2"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                Continue Learning
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleBuyNow}
+                  className="flex-1 min-w-[120px] py-3 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-blue text-white text-xs font-extrabold hover:opacity-95 cursor-pointer text-center"
+                >
+                  Buy Now
+                </button>
+                <button
+                  onClick={handleCartClick}
+                  className={`p-3 rounded-2xl border transition-colors cursor-pointer ${
+                    inCart
+                      ? "bg-brand-blue/20 border-brand-blue/30 text-white"
+                      : "bg-white/10 border-white/20 hover:bg-white/20 text-white"
+                  }`}
+                >
+                  <ShoppingBag className="w-4.5 h-4.5" />
+                </button>
+                <button
+                  onClick={handleWishlistClick}
+                  className={`p-3 rounded-2xl border transition-colors cursor-pointer ${
+                    inWishlist
+                      ? "bg-red-500/20 border-red-500/30 text-red-500"
+                      : "bg-white/10 border-white/20 hover:bg-white/20 text-white"
+                  }`}
+                >
+                  <Heart
+                    className={`w-4.5 h-4.5 ${inWishlist ? "fill-red-500" : ""}`}
+                  />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -311,51 +383,79 @@ export const CourseDetail = () => {
         {/* Left Columns - Detailed content */}
         <div className="w-full lg:w-8/12 space-y-10">
           {/* Video Preview Player */}
-          <section className="bg-white rounded-[32px] border border-brand-border premium-shadow p-5 relative overflow-hidden">
-            {isPlaying && currentVideoUrl ? (
-              <div className="h-[280px] sm:h-[400px] w-full rounded-2xl relative overflow-hidden bg-black">
-                <video
-                  src={currentVideoUrl}
-                  controls
-                  autoPlay
-                  className="w-full h-full object-contain"
-                >
-                  Your browser does not support the video tag.
-                </video>
-                <button
-                  onClick={handleCloseVideo}
-                  className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center cursor-pointer transition-colors z-10"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            ) : (
-              <div
-                className="h-[280px] sm:h-[400px] w-full rounded-2xl flex items-center justify-center text-white relative overflow-hidden group cursor-pointer"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #7C3AED 0%, #6366F1 100%)",
-                }}
-                onClick={() => {
-                  if (course?.previewVideo) {
-                    setCurrentVideoUrl(course.previewVideo);
-                    setIsPlaying(true);
-                  }
-                }}
-              >
-                <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] transition-all group-hover:bg-black/45"></div>
-
-                <div className="w-16 h-16 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur border border-white/30 flex items-center justify-center cursor-pointer transition-transform group-hover:scale-105 z-10 shadow-2xl">
-                  <Play className="w-7 h-7 text-white fill-white ml-1" />
+          {chapters
+            .flatMap((c) => c.lessons || [])
+            .some((l) => l.isPreview) && (
+            <section className="bg-bg-card rounded-[32px] border border-brand-border premium-shadow p-5 relative overflow-hidden">
+              {isPlaying && previewLesson ? (
+                <div className="h-[280px] sm:h-[400px] w-full rounded-2xl relative">
+                  <VideoPlayer
+                    lesson={previewLesson}
+                    courseId={course._id}
+                    onComplete={handlePreviewComplete}
+                    onProgress={handlePreviewProgress}
+                    isCompleted={false}
+                    initialTime={0}
+                    posterUrl={course.thumbnailUrl}
+                  />
+                  <button
+                    onClick={handleCloseVideo}
+                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center cursor-pointer transition-colors z-10"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
+              ) : (
+                <div
+                  className="relative h-[280px] sm:h-[400px] w-full rounded-2xl overflow-hidden cursor-pointer group"
+                  onClick={() => {
+                    const firstPreviewLesson = chapters
+                      .flatMap((c) => c.lessons || [])
+                      .find((l) => l.isPreview);
 
-                <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 bg-black/40 backdrop-blur px-3.5 py-1.5 rounded-full text-xs font-bold border border-white/15">
-                  <Clock className="w-3.5 h-3.5 text-brand-purple-light" />
-                  <span>Preview Lecture • 2:30 Mins</span>
+                    if (firstPreviewLesson?.videoUrl) {
+                      setPreviewLesson(firstPreviewLesson);
+                      setIsPlaying(true);
+                    }
+                  }}
+                >
+                  {/* Course Image */}
+                  <img
+                    src={course?.thumbnailUrl}
+                    alt={course?.title}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+
+                  {/* Dark Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10 group-hover:bg-black/40 transition-all" />
+
+                  {/* Play Button */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-purple">
+                      <Play
+                        className="w-9 h-9 text-white fill-white ml-1"
+                        strokeWidth={2}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bottom Info */}
+                  <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between">
+                    <div className="bg-black/50 backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-2 border border-white/10">
+                      <Clock className="w-4 h-4 text-brand-purple-light" />
+                      <span className="text-sm font-medium text-white">
+                        Preview Course
+                      </span>
+                    </div>
+
+                    <div className="bg-white/15 backdrop-blur-md px-3 py-2 rounded-full text-white text-sm font-medium border border-white/10">
+                      Free
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
 
           {/* What You'll Learn Section */}
           {course.learningOutcomes && course.learningOutcomes.length > 0 && (
@@ -367,7 +467,7 @@ export const CourseDetail = () => {
                 {course.learningOutcomes.map((outcome, idx) => (
                   <div
                     key={idx}
-                    className="bg-white border border-brand-border rounded-2xl p-4 flex gap-3 premium-shadow"
+                    className="bg-bg-card border border-brand-border rounded-2xl p-4 flex gap-3 premium-shadow"
                   >
                     <div className="w-6 h-6 rounded-full bg-brand-purple/10 flex items-center justify-center text-brand-purple shrink-0 mt-0.5">
                       <Check className="w-4 h-4" />
@@ -393,11 +493,11 @@ export const CourseDetail = () => {
             </div>
 
             {chapters.length > 0 ? (
-              <div className="border border-brand-border rounded-3xl bg-white overflow-hidden premium-shadow divide-y divide-brand-border/60">
+              <div className="border border-brand-border rounded-3xl bg-bg-card overflow-hidden premium-shadow divide-y divide-brand-border/60">
                 {chapters.map((chapter) => {
                   const isOpen = activeModules.includes(chapter._id);
                   const chapterDuration = chapter.lessons.reduce(
-                    (acc, l) => acc + l.duration,
+                    (acc, l) => acc + (l.durationSeconds || l.duration || 0),
                     0,
                   );
 
@@ -445,7 +545,11 @@ export const CourseDetail = () => {
                                   </div>
                                   <div className="flex items-center gap-3 shrink-0">
                                     <span className="text-brand-gray font-bold">
-                                      {formatLessonDuration(lesson.duration)}
+                                      {formatDuration(
+                                        lesson.durationSeconds ||
+                                          lesson.duration ||
+                                          0,
+                                      )}
                                     </span>
                                     {lesson.isPreview && (
                                       <button
@@ -468,7 +572,7 @@ export const CourseDetail = () => {
                 })}
               </div>
             ) : (
-              <div className="border border-brand-border rounded-3xl bg-white p-8 text-center">
+              <div className="border border-brand-border rounded-3xl bg-bg-card p-8 text-center">
                 <p className="text-sm text-brand-gray font-semibold">
                   No curriculum available yet
                 </p>
@@ -501,7 +605,7 @@ export const CourseDetail = () => {
             <h3 className="text-xl font-extrabold text-brand-navy">
               Instructor
             </h3>
-            <div className="bg-white border border-brand-border rounded-[32px] premium-shadow p-6 flex flex-col sm:flex-row gap-6">
+            <div className="bg-bg-card border border-brand-border rounded-[32px] premium-shadow p-6 flex flex-col sm:flex-row gap-6">
               <img
                 src={instructorAvatar}
                 alt={instructorName}
@@ -525,17 +629,17 @@ export const CourseDetail = () => {
         </div>
 
         {/* Right Sticky Purchase Sidebar Card (Desktop) */}
-        <aside className="w-full lg:w-4/12 hidden lg:block sticky top-24 z-20">
-          <div className="bg-white rounded-[32px] border border-brand-border premium-shadow p-6 space-y-6">
+        <aside className="w-full lg:w-4/12 hidden lg:block sticky top-24 z-20 self-start h-fit">
+          <div className="bg-bg-card rounded-[32px] border border-brand-border premium-shadow p-6 space-y-6">
             {/* Price */}
             <div className="space-y-1">
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-black text-brand-navy">
-                  ${displayPrice}
+                  ₹{displayPrice}
                 </span>
                 {course.discountPrice && (
                   <span className="text-sm text-brand-gray line-through font-bold">
-                    ${course.price}
+                    ₹{course.price}
                   </span>
                 )}
               </div>
@@ -578,32 +682,51 @@ export const CourseDetail = () => {
 
             {/* CTAs */}
             <div className="space-y-2.5 pt-2">
-              <button
-                onClick={handleCartClick}
-                className={`w-full py-3.5 rounded-[20px] text-xs font-bold transition-all duration-200 border cursor-pointer ${
-                  inCart
-                    ? "bg-brand-blue/10 border-brand-blue/20 text-brand-blue"
-                    : "bg-white border-brand-purple text-brand-purple hover:bg-brand-purple/5"
-                }`}
-              >
-                {inWishlist ? "Remove From Cart" : "Add To Cart"}
-              </button>
+              {isEnrolled ? (
+                <button
+                  onClick={handleContinueLearning}
+                  className="w-full py-3.5 rounded-[20px] bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-all premium-shadow cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  Continue Learning
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleCartClick}
+                    className={`w-full py-3.5 rounded-[20px] text-xs font-bold transition-all duration-200 border cursor-pointer ${
+                      inCart
+                        ? "bg-brand-blue/10 border-brand-blue/20 text-brand-blue"
+                        : "bg-bg-card border-brand-purple text-brand-purple hover:bg-brand-purple/5"
+                    }`}
+                  >
+                    {inCart ? "Remove From Cart" : "Add To Cart"}
+                  </button>
 
-              <button className="w-full py-3.5 rounded-[20px] bg-gradient-to-r from-brand-purple to-brand-blue text-white text-xs font-bold hover:opacity-95 transition-all premium-shadow cursor-pointer">
-                Buy Now
-              </button>
+                  <button
+                    onClick={handleBuyNow}
+                    className="w-full py-3.5 rounded-[20px] bg-gradient-to-r from-brand-purple to-brand-blue text-white text-xs font-bold hover:opacity-95 transition-all premium-shadow cursor-pointer"
+                  >
+                    Buy Now
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Wishlist toggle */}
-            <button
-              onClick={handleWishlistClick}
-              className="w-full py-2.5 border border-brand-border rounded-[20px] text-xs font-bold text-brand-navy hover:bg-bg-secondary transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Heart
-                className={`w-4 h-4 ${inWishlist ? "fill-red-500 text-red-500" : "text-brand-gray"}`}
-              />
-              <span>{inCart ? "Remove from Wishlist" : "Add to Wishlist"}</span>
-            </button>
+            {!isEnrolled && (
+              <button
+                onClick={handleWishlistClick}
+                className="w-full py-2.5 border border-brand-border rounded-[20px] text-xs font-bold text-brand-navy hover:bg-bg-secondary transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Heart
+                  className={`w-4 h-4 ${inWishlist ? "fill-red-500 text-red-500" : "text-brand-gray"}`}
+                />
+                <span>
+                  {inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+                </span>
+              </button>
+            )}
           </div>
         </aside>
       </div>
