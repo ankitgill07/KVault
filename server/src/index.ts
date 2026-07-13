@@ -10,6 +10,7 @@ import moduleRouter from "./routers/moduleRouter.js";
 import categoryRouter from "./routers/categoryRouter.js";
 import enrollmentRouter from "./routers/enrollmentRouter.js";
 import cartRouter from "./routers/cartRouter.js";
+import progressRouter from "./routers/progressRouter.js";
 import wishlistRouter from "./routers/wishlistRouter.js";
 import paymentRouter from "./routers/paymentRouter.js";
 import cors from "cors";
@@ -17,6 +18,7 @@ import cookieParser from "cookie-parser";
 import { authenticate } from "./middleware/authMiddleware.js";
 import path from "path";
 import { fileURLToPath } from "url";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,13 +39,23 @@ app.use((req, _res, next) => {
   next();
 });
 
+const allowedOrigins = [process.env.FRONTEND_URL, process.env.FRONTEND_URL_2];
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL as string,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (e.g., Postman, mobile apps)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );
-
 // Serve static files from uploads directory
 app.use("/uploads", express.static("uploads"));
 
@@ -55,12 +67,15 @@ app.use(`/${API_VERSION}/user`, authenticate, userRouter);
 app.use(`/${API_VERSION}/cart`, authenticate, cartRouter);
 app.use(`/${API_VERSION}/wishlist`, authenticate, wishlistRouter);
 
-app.use(`/${API_VERSION}/courses`, authenticate, courseRouter);
-app.use(`/${API_VERSION}/review`, authenticate, reviewRouter);
-app.use(`/${API_VERSION}/categories`, authenticate, categoryRouter);
-app.use(`/${API_VERSION}/lessons`, authenticate, lessonRouter);
+
+
+app.use(`/${API_VERSION}/courses`, courseRouter);
+app.use(`/${API_VERSION}/review`, reviewRouter);
+app.use(`/${API_VERSION}/categories`, categoryRouter);
+app.use(`/${API_VERSION}/lessons`, lessonRouter);
 app.use(`/${API_VERSION}/enrollments`, authenticate, enrollmentRouter);
-app.use(`/${API_VERSION}/module`, authenticate, moduleRouter);
+app.use(`/${API_VERSION}/modules`, moduleRouter);
+app.use(`/${API_VERSION}/progress`, authenticate, progressRouter);
 app.use(`/${API_VERSION}/payment`, authenticate, paymentRouter);
 
 app.get("/", (req, res) => {
