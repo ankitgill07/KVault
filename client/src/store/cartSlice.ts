@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { cartService, type CartUI, type CartItemUI } from '../services/cartService';
+import { fetchWishlist } from './wishlistSlice';
 
 export interface CartState {
   cart: CartUI | null;
@@ -22,9 +23,11 @@ export const fetchCart = createAsyncThunk('cart/fetchCart', async () => {
 
 export const addToCart = createAsyncThunk(
   'cart/addToCart',
-  async (courseId: string, { rejectWithValue }) => {
+  async (courseId: string, { dispatch, rejectWithValue }) => {
     try {
       const data = await cartService.addToCart(courseId);
+      // Re-sync wishlist since backend may have removed from it
+      dispatch(fetchWishlist());
       return data;
     } catch (error) {
       return rejectWithValue('Failed to add to cart');

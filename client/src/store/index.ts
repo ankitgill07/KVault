@@ -3,12 +3,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import cartReducer from './cartSlice';
 import wishlistReducer from './wishlistSlice';
 import enrollmentReducer from './enrollmentSlice';
+import progressReducer from './progressSlice';
 
 export const store = configureStore({
   reducer: {
     cart: cartReducer,
     wishlist: wishlistReducer,
     enrollment: enrollmentReducer,
+    progress: progressReducer,
   },
   devTools: import.meta.env.DEV,
 });
