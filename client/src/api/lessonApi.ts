@@ -10,11 +10,25 @@ import { axiosInstance } from "./axoisInstance";
 export interface Lesson {
   _id: string;
   title: string;
-  duration: number;
   description?: string;
   isPreview?: boolean;
   order: number;
   videoUrl: string;
+  videoKey?: string;
+  videoStatus?: 'pending' | 'processing' | 'ready' | 'failed';
+  contentType?: string;
+  course?: string;
+  module?: string;
+  content_text?: string;
+  content_url?: string;
+  lesson_type?: string;
+  durationSeconds : number;
+  duration?: number;
+  is_free_preview?: boolean;
+  textContent?: string;
+  markdownContent?: string;
+  isFree?: boolean;
+  isPublished?: boolean;
 }
 
 export interface LessonResponse {
@@ -31,14 +45,21 @@ export interface LessonsListResponse {
 
 export interface CreateLessonData {
   module: string;
+  course: string;
   title: string;
   description?: string;
   content?: string;
   videoUrl?: string;
-  duration?: number;
+  videoKey?: string;
+  videoStatus?: 'pending' | 'processing' | 'ready' | 'failed';
+  durationSeconds?: number;
   order: number;
+  contentType?: string;
   isPublished?: boolean;
   isFree?: boolean;
+  isPreview?: boolean;
+  textContent?: string;
+  markdownContent?: string;
   resources?: Array<{
     name: string;
     type: string;
@@ -53,10 +74,16 @@ export interface UpdateLessonData {
   description?: string;
   content?: string;
   videoUrl?: string;
-  duration?: number;
+  videoKey?: string;
+  videoStatus?: 'pending' | 'processing' | 'ready' | 'failed';
+  durationSeconds?: number;
   order?: number;
+  contentType?: string;
   isPublished?: boolean;
   isFree?: boolean;
+  isPreview?: boolean;
+  textContent?: string;
+  markdownContent?: string;
   resources?: Array<{
     name: string;
     type: string;

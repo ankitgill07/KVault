@@ -10,7 +10,9 @@ import { axiosInstance } from "./axoisInstance";
 export interface Course {
   _id: string;
   title: string;
+  subtitle?: string;
   description: string;
+  shortDescription?: string;
   slug: string;
   level: string;
   language: string;
@@ -18,19 +20,22 @@ export interface Course {
   totalLessons: number;
   totalModules: number;
   price: number;
-  previewVideo: string;
   discountPrice?: number;
-  thumbnail: string;
+  currency?: string;
+  isPublished?: boolean;
+  thumbnailUrl?: string;
+  thumbnailKey?: string;
   requirements: string[];
   learningOutcomes: string[];
+  targetAudience?: string[];
+  tags?: string[];
   rating: number;
   enrollmentCount: number;
   reviewCount: number;
   category?: any;
-  instructors?: any[];
   instructorAvatar: string;
   primaryInstructor?: any;
-  updatedAt : number
+  updatedAt : number;
 }
 
 export interface Category {
@@ -60,10 +65,11 @@ export interface CoursesListResponse {
 
 export interface CreateCourseData {
   title: string;
+  slug?: string;
   description: string;
   shortDescription?: string;
-  thumbnail: string;
-  previewVideo?: string;
+  thumbnailUrl?: string;
+  thumbnailKey?: string;
   price: number;
   discountPrice?: number;
   level: "beginner" | "intermediate" | "advanced";
@@ -71,7 +77,8 @@ export interface CreateCourseData {
   duration: number;
   category: string;
   requirements?: string[];
-  whatYouWillLearn?: string[];
+  learningOutcomes?: string[];
+  targetAudience?: string[];
   tags?: string[];
   isPublished?: boolean;
   isFeatured?: boolean;
@@ -79,10 +86,11 @@ export interface CreateCourseData {
 
 export interface UpdateCourseData {
   title?: string;
+  slug?: string;
   description?: string;
   shortDescription?: string;
-  thumbnail?: string;
-  previewVideo?: string;
+  thumbnailUrl?: string;
+  thumbnailKey?: string;
   price?: number;
   discountPrice?: number;
   level?: "beginner" | "intermediate" | "advanced";
@@ -90,10 +98,14 @@ export interface UpdateCourseData {
   duration?: number;
   category?: string;
   requirements?: string[];
-  whatYouWillLearn?: string[];
+  learningOutcomes?: string[];
+  targetAudience?: string[];
   tags?: string[];
+  status?: string;
   isPublished?: boolean;
   isFeatured?: boolean;
+  totalModules?: number;
+  totalLessons?: number;
 }
 
 // ─── Course API ───────────────────────────────────────────────────────────────
@@ -193,6 +205,19 @@ export const courseApi = {
     data: UpdateCourseData,
   ): Promise<CourseResponse> => {
     const response = await axiosInstance.put(`/courses/${id}`, data);
+    return response.data;
+  },
+
+  /**
+   * POST /courses/upload-url
+   * Get upload presigned URL
+   */
+  getUploadPresignedUrl: async (data: {
+    type: "thumbnail" | "video";
+    fileName: string;
+    fileType: string;
+  }): Promise<any> => {
+    const response = await axiosInstance.post("/courses/upload/presigned-url", data);
     return response.data;
   },
 

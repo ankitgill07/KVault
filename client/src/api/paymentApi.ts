@@ -11,7 +11,7 @@ export interface Purchase {
   id: string;
   course: string;
   courseId?: string;
-  thumbnail?: string;
+  thumbnailUrl?: string;
   date: string;
   amount: number;
   method: string;
@@ -46,7 +46,7 @@ export interface InvoiceData {
   course: {
     title: string;
     description: string;
-    thumbnail?: string;
+    thumbnailUrl?: string;
   };
   
   instructor?: {

@@ -11,7 +11,8 @@ export interface CartItemResponse {
     _id: string;
     title: string;
     price: number;
-    thumbnail: string;
+    discountPrice?: number;
+    thumbnailUrl?: string;
     slug: string;
   };
   priceAtAdd: number;
@@ -89,9 +90,9 @@ export const cartApi = {
     return response.data;
   },
 
-  /** POST /api/cart/checkout — Create payment order for cart */
+  /** POST /api/payment/create-order — Create or reuse payment order for cart */
   checkout: async (): Promise<CheckoutResponse> => {
-    const response = await axiosInstance.post("/cart/checkout");
+    const response = await axiosInstance.post("/payment/create-order");
     return response.data;
   },
 };

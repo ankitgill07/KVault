@@ -11,7 +11,7 @@ export interface WishlistItemResponse {
     _id: string;
     title: string;
     price: number;
-    thumbnail: string;
+    thumbnailUrl?: string;
     slug: string;
   };
   addedAt: string;

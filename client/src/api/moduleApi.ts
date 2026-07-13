@@ -56,7 +56,7 @@ export const moduleApi = {
    * Fetch all modules for a specific course
    */
   getModulesByCourse: async (courseId: string): Promise<ModulesListResponse> => {
-    const response = await axiosInstance.get(`/module/${courseId}/modules`);
+    const response = await axiosInstance.get(`/modules/${courseId}/modules`);
     return response.data;
   },
 

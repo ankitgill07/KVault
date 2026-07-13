@@ -21,10 +21,11 @@ export interface Enrollment {
   currentModule?: string;
   lastAccessed?: string;
   enrolledAt: string;
+  lessonProgress?: Record<string, number>;
   courseDetails?: {
     _id: string;
     title: string;
-    thumbnail: string;
+    thumbnailUrl?: string;
     instructor: {
       _id: string;
       name: string;
@@ -100,7 +101,7 @@ export interface CertificateResponse {
     course: {
       _id: string;
       title: string;
-      thumbnail: string;
+      thumbnailUrl?: string;
     };
     student: {
       _id: string;
