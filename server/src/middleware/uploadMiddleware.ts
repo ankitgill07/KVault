@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configure storage
+// Configure storage for disk uploads (for profile pictures, etc.)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, '../../uploads');
@@ -18,20 +18,32 @@ const storage = multer.diskStorage({
   }
 });
 
+// Memory storage for R2 uploads (for thumbnails)
+export const memoryStorage = multer.memoryStorage();
+
 // File filter for images only
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPG, JPEG, and PNG files are allowed.'));
+    cb(new Error('Invalid file type. Only JPG, JPEG, PNG, and WebP files are allowed.'));
   }
 };
 
-// Configure multer
+// Configure multer for disk storage
 export const upload = multer({
   storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+  fileFilter: fileFilter,
+});
+
+// Configure multer for memory storage (R2 uploads)
+export const uploadMemory = multer({
+  storage: memoryStorage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
   },

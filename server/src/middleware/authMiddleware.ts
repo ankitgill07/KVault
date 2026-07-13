@@ -10,7 +10,7 @@ export const authenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const sessionId = req.sessionId;
+    const sessionId = req.cookies.sessionId;    
     if (!sessionId) {
       sendError(res, 'Session missing. Please log in again.', 401);
       return;
@@ -79,4 +79,44 @@ export const requireEmailVerified = (
     return;
   }
   next();
+};
+
+/**
+ * Optional authentication middleware.
+ * Attempts to load the user from the session cookie, but does NOT
+ * reject the request if no session exists. This allows public preview
+ * viewers to pass through while still populating req.user for
+ * authenticated callers.
+ */
+export const optionalAuthenticate = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const sessionId = req.cookies?.sessionId;
+    if (!sessionId) {
+      next();
+      return;
+    }
+
+    const session = await getSession(sessionId);
+    if (!session) {
+      next();
+      return;
+    }
+
+    const user = await User.findById(session.userId).select('-password');
+    if (!user || !user.isActive) {
+      next();
+      return;
+    }
+
+    req.user = user;
+    req.sessionId = sessionId;
+    next();
+  } catch {
+    // On any error, continue as anonymous rather than failing
+    next();
+  }
 };
