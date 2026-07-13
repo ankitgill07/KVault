@@ -65,11 +65,11 @@ export function Price({ currentPrice, originalPrice, className }: PriceProps) {
   return (
     <div className={cn("flex items-baseline gap-2", className)}>
       <span className="text-lg font-extrabold text-neutral-900">
-        ${currentPrice.toFixed(2)}
+        ${currentPrice?.toFixed(2)}
       </span>
       {hasDiscount && (
         <span className="text-sm font-medium text-neutral-400 line-through">
-          ${originalPrice!.toFixed(2)}
+          ${originalPrice!?.toFixed(2)}
         </span>
       )}
     </div>
@@ -299,8 +299,7 @@ export const generateInvoiceHTML = (data: InvoiceData): string => {
     `;
 };
 
-
-export function formatDateTime(timestamp : number) {
+export function formatDateTime(timestamp: number) {
   if (!timestamp) return "";
 
   const date = new Date(timestamp);
@@ -312,4 +311,67 @@ export function formatDateTime(timestamp : number) {
   });
 
   return `${day} ${month}`;
+}
+let idCounter = 0;
+export function uid(prefix = "id"): string {
+  idCounter += 1;
+  return `${prefix}_${Date.now().toString(36)}_${idCounter}`;
+}
+
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+export function autoSlug(title: string): string {
+  const base = slugify(title);
+  if (!base) return "";
+  const now = new Date();
+  const timeCode = `${now.getHours()}${now.getMinutes()}`;
+  return `${base}-${timeCode}`.slice(0, 60);
+}
+
+export function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+
+    const objectUrl = URL.createObjectURL(file);
+    video.src = objectUrl;
+
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(objectUrl);
+      if (!isFinite(video.duration) || isNaN(video.duration)) {
+        reject(new Error("Could not determine video duration"));
+        return;
+      }
+      resolve(video.duration);
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to load video metadata"));
+    };
+  });
+}
+
+export function formatDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+
+  return `${seconds}s`;
 }
