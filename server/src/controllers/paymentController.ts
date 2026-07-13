@@ -11,9 +11,23 @@ import Cart from "../models/cartModel.js";
 import Enrollment from "../models/enrollmentModel.js";
 import Course from "../models/courseModel.js";
 import User from "../models/userModel.js";
+import Order from "../models/orderModel.js";
 import { AppError } from "../utils/appError.js";
 import { EnrollmentStatus } from "../interfaces/courseInterfaces.js";
 import mongoose from "mongoose";
+
+const CREATED_ORDER_STATUSES = ["created", "pending"] as const;
+
+const getUserId = (req: AuthenticatedRequest): string | undefined => {
+  return req.user?.id || req.user?._id?.toString();
+};
+
+const sameCourseSet = (left: string[], right: string[]): boolean => {
+  if (left.length !== right.length) return false;
+
+  const rightSet = new Set(right);
+  return left.every((courseId) => rightSet.has(courseId));
+};
 
 // ─── POST /api/payment/create-order ────────────────────────────────────────────
 
@@ -22,7 +36,7 @@ export const createOrder = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     if (!userId) {
       sendError(res, "Unauthorized", 401);
       return;
@@ -31,7 +45,7 @@ export const createOrder = async (
     // Get user's cart
     const cart = await Cart.findOne({
       user: new mongoose.Types.ObjectId(userId),
-    }).populate("items.course", "title price thumbnail");
+    }).populate("items.course", "title price thumbnailUrl");
 
     if (!cart || cart.items.length === 0) {
       sendError(res, "Your cart is empty", 400);
@@ -57,6 +71,54 @@ export const createOrder = async (
       )
       .filter(Boolean);
 
+    // Reuse an existing unpaid Razorpay order only when it matches this exact cart.
+    const existingCreatedOrders = await Order.find({
+      student: userId,
+      status: { $in: CREATED_ORDER_STATUSES },
+    });
+
+    const ordersByRazorpayId = existingCreatedOrders.reduce(
+      (groups, orderDoc) => {
+        if (!orderDoc.razorpayOrderId) return groups;
+
+        const group = groups.get(orderDoc.razorpayOrderId) || [];
+        group.push(orderDoc);
+        groups.set(orderDoc.razorpayOrderId, group);
+        return groups;
+      },
+      new Map<string, typeof existingCreatedOrders>(),
+    );
+
+    for (const [existingOrderId, orderDocs] of ordersByRazorpayId) {
+      const existingCourseIds = orderDocs.map((orderDoc) =>
+        orderDoc.course.toString(),
+      );
+      const existingAmountInPaise = Math.round(
+        orderDocs.reduce((sum, orderDoc) => sum + orderDoc.amount, 0) * 100,
+      );
+
+      if (
+        sameCourseSet(existingCourseIds, courseIds) &&
+        existingAmountInPaise === amountInPaise
+      ) {
+        sendSuccess(res, "Existing payment order found", {
+          order: {
+            orderId: existingOrderId,
+            amount: amountInPaise,
+            currency: "INR",
+            keyId: process.env.RAZORPAY_KEY_ID as string,
+          },
+        });
+        return;
+      }
+    }
+
+    // Clean up stale unpaid orders when the cart no longer matches them.
+    await Order.deleteMany({
+      student: userId,
+      status: { $in: CREATED_ORDER_STATUSES },
+    });
+
     // Create payment order
     const order = await createPaymentOrder({
       amount: amountInPaise,
@@ -68,6 +130,19 @@ export const createOrder = async (
         courseIds,
       },
     });
+
+    // Create Order documents for each course
+    for (const courseId of courseIds) {
+      const courseDoc = await Course.findById(courseId).populate('primaryInstructor');
+      await Order.create({
+        student: userId,
+        course: courseId,
+        instructor: (courseDoc?.primaryInstructor as any)?._id || courseDoc?.primaryInstructor,
+        amount: amountInPaise / courseIds.length,
+        status: 'created',
+        razorpayOrderId: order.orderId,
+      });
+    }
 
     sendSuccess(res, "Payment order created successfully", { order });
   } catch (error: any) {
@@ -83,7 +158,7 @@ export const verifyPayment = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const userId = req.user?._id;
+    const userId = getUserId(req);
 
     if (!userId) {
       sendError(res, "Unauthorized", 401);
@@ -109,6 +184,12 @@ export const verifyPayment = async (
       sendError(res, "Invalid payment signature", 400);
       return;
     }
+
+    // Update order status to paid
+    await Order.updateMany(
+      { razorpayOrderId: razorpay_order_id, status: { $in: CREATED_ORDER_STATUSES } },
+      { $set: { status: 'paid', transactionId: razorpay_payment_id } }
+    );
 
     // Get cart with populated courses
     const cart = await Cart.findOne({
@@ -176,7 +257,15 @@ export const verifyPayment = async (
 
     // Update user's enrolled courses and progress
     user.enrolledCourses = Array.from(enrolledCourses);
-    user.courseProgress = courseProgressObj;
+    // Merge course progress (don't overwrite existing)
+    if (!user.courseProgress) {
+      user.courseProgress = new Map();
+    }
+    for (const [courseId, data] of Object.entries(courseProgressObj)) {
+      if (!user.courseProgress.has(courseId)) {
+        user.courseProgress.set(courseId, data);
+      }
+    }
     user.markModified("courseProgress");
     await user.save();
 
@@ -201,7 +290,7 @@ export const getPaymentStatus = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     const { orderId } = req.params;
 
     if (!userId) {
@@ -228,7 +317,7 @@ export const getPurchaseHistory = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
 
     if (!userId) {
       sendError(res, "Unauthorized", 401);
@@ -237,7 +326,7 @@ export const getPurchaseHistory = async (
 
     // Fetch all enrollments with course and payment details
     const enrollments = await Enrollment.find({ student: userId })
-      .populate("course", "title thumbnail price instructor")
+      .populate("course", "title thumbnailUrl price instructor")
       .populate("student", "name email")
       .sort({ createdAt: -1 });
 
@@ -250,7 +339,7 @@ export const getPurchaseHistory = async (
         id: enrollment._id.toString(),
         course: course?.title || "Unknown Course",
         courseId: course?._id?.toString(),
-        thumbnail: course?.thumbnail,
+        thumbnailUrl: course?.thumbnailUrl,
         date: enrollment.createdAt,
         amount: enrollment.amountPaid || course?.price || 0,
         method: enrollment.paymentMethod || "razorpay",
@@ -277,7 +366,7 @@ export const getInvoice = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
     const { enrollmentId } = req.params;
 
     if (!userId) {
@@ -296,7 +385,7 @@ export const getInvoice = async (
       _id: enrollmentId,
       student: userId,
     })
-      .populate("course", "title thumbnail price description instructor")
+      .populate("course", "title thumbnailUrl price description instructor")
       .populate("student", "name email ")
 
     if (!enrollment) {
@@ -325,7 +414,7 @@ export const getInvoice = async (
       course: {
         title: course?.title || "Course",
         description: course?.description || "",
-        thumbnail: course?.thumbnail,
+        thumbnailUrl: course?.thumbnailUrl,
       },
 
       // Instructor Details

@@ -9,6 +9,8 @@ import { createPaymentOrder, getCartTotalInPaise, generateReceiptId } from "../s
 import { sendSuccess, sendError } from "../utils/responseUtil.js";
 import { type AuthenticatedRequest } from "../types/type.js";
 import type { RemoveParams } from "../interfaces/cartWishlistInterfaces.js";
+import Cart from "../models/cartModel.js";
+import mongoose from "mongoose";
 
 
 export const getCart = async (
@@ -99,16 +101,20 @@ export const checkout = async (
       return;
     }
 
-    // Get cart
-    const cart = await getCartByUserId(userId);
-    
-    if (!cart || cart.items.length === 0) {
+    // Calculate amount from discount prices (INR)
+    const cartWithPrices = await Cart.findOne({ user: new mongoose.Types.ObjectId(userId) })
+      .populate('items.course', 'title price discountPrice thumbnailUrl slug');
+
+    if (!cartWithPrices || cartWithPrices.items.length === 0) {
       sendError(res, "Your cart is empty", 400);
       return;
     }
 
-    // Calculate amount in paise
-    const amountInPaise = getCartTotalInPaise(cart);
+    const amountInPaise = cartWithPrices.items.reduce((sum: number, item: any) => {
+      const course = item.course as any;
+      const effectivePrice = course?.discountPrice ?? course?.price ?? item.priceAtAdd ?? 0;
+      return sum + Math.round(effectivePrice * 100);
+    }, 0);
     
     if (amountInPaise <= 0) {
       sendError(res, "Invalid cart amount", 400);
@@ -119,7 +125,7 @@ export const checkout = async (
     const receiptId = generateReceiptId(`cart_${userId}`);
 
     // Extract course IDs
-    const courseIds = cart.items
+    const courseIds = cartWithPrices.items
       .map((item) => (item.course as any)?._id?.toString() || item.course.toString())
       .filter(Boolean);
 
@@ -130,14 +136,14 @@ export const checkout = async (
       receipt: receiptId,
       notes: {
         userId,
-        cartId: cart._id.toString(),
+        cartId: cartWithPrices._id.toString(),
         courseIds,
       },
     });
 
     sendSuccess(res, "Payment order created. Please complete payment.", { 
       order,
-      cart 
+      cart: cartWithPrices 
     });
   } catch (error: any) {
     console.error("[checkout]", error);

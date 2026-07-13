@@ -15,6 +15,21 @@ const getRequestMeta = (req: Request) => ({
   userAgent: req.get('user-agent') as string,
 });
 
+const sessionCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  maxAge: 60 * 60 * 24 * 14 * 1000, // 14 days
+};
+
+const clearSessionCookie = (res: Response): void => {
+  res.clearCookie('sessionId', {
+    httpOnly: sessionCookieOptions.httpOnly,
+    secure: sessionCookieOptions.secure,
+    sameSite: sessionCookieOptions.sameSite,
+  });
+};
+
 const handleError = (error: unknown, res: Response, tag: string): void => {
   if (error instanceof AppError) {
     sendError(res, error.message, error.statusCode);
@@ -38,12 +53,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const result = await loginUserService(input, getRequestMeta(req));
     
     // Set session cookie with all details and expiry
-    res.cookie('sessionId', result.sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 14 * 1000, // 14 days
-    });
+    res.cookie('sessionId', result.sessionId, sessionCookieOptions);
     
     sendSuccess(res, 'Login successful', { sessionId: result.sessionId, user: result.user });
   } catch (error) { handleError(error, res, 'login'); }
@@ -76,12 +86,7 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
     await User.findByIdAndUpdate(user.id, { lastLoginAt: new Date() });
 
     // Set session cookie
-    res.cookie('sessionId', sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 14 * 1000, // 14 days
-    });
+    res.cookie('sessionId', sessionId, sessionCookieOptions);
 
     sendSuccess(res, 'Email verified successfully!', {
       sessionId,
@@ -116,7 +121,7 @@ export const refreshToken = async (_req: Request, res: Response): Promise<void> 
 export const logout = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     if (req.sessionId && req.user?.id) await logoutService(req.sessionId, req.user.id as string);
-    res.clearCookie('sessionId');
+    clearSessionCookie(res);
     sendSuccess(res, 'Logged out successfully.');
   } catch (error) { handleError(error, res, 'logout'); }
 };
@@ -124,7 +129,7 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
 export const logoutAll = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     if (req.user?.id) await logoutAllService(req.user.id as string);
-    res.clearCookie('sessionId');
+    clearSessionCookie(res);
     sendSuccess(res, 'Logged out from all devices.');
   } catch (error) { handleError(error, res, 'logoutAll'); }
 };

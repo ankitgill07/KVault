@@ -2,12 +2,7 @@ import { type Response } from 'express';
 import { type AuthenticatedRequest } from '../types/type.js';
 import User from '../models/userModel.js';
 import { sendSuccess, sendError } from '../utils/responseUtil.js';
-import { upload } from '../middleware/uploadMiddleware.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { uploadAvatarToR2, deleteFileFromR2 } from '../services/video/cloudflareR2Service.js';
 
 export const getProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -60,7 +55,7 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
 export const uploadProfileImage = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
-    
+
     if (!req.file) {
       sendError(res, 'No file uploaded', 400);
       return;
@@ -72,26 +67,21 @@ export const uploadProfileImage = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Delete old avatar if exists
-    if (user.avatar) {
-      const oldAvatarPath = path.join(__dirname, '../../uploads', path.basename(user.avatar));
-      try {
-        const fs = await import('fs');
-        if (fs.existsSync(oldAvatarPath)) {
-          fs.unlinkSync(oldAvatarPath);
-        }
-      } catch (error) {
-        console.error('Error deleting old avatar:', error);
-      }
+    // Delete old avatar from R2 if exists
+    if (user.avatarKey) {
+      await deleteFileFromR2(user.avatarKey);
     }
 
-    // Update avatar path
-    const avatarUrl = `/uploads/${req.file.filename}`;
-    user.avatar = avatarUrl;
+    // Upload new avatar to R2
+    const uploadResult = await uploadAvatarToR2(req.file, userId as string);
+
+    // Update user record
+    user.avatar = uploadResult.url;
+    (user as any).avatarKey = uploadResult.key;
     await user.save();
 
     sendSuccess(res, 'Profile image uploaded successfully', { 
-      avatar: avatarUrl 
+      avatar: uploadResult.url 
     });
   } catch (error) {
     console.error('[uploadProfileImage]', error);
