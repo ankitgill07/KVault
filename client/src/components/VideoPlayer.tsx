@@ -145,8 +145,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   useEffect(() => {
     mountedRef.current = true;
 
-    if (isPreviewOrFree) {
-      // Preview / free lessons stream directly — no session needed
+    const token = localStorage.getItem("token") || localStorage.getItem("auth_token");
+    if (isPreviewOrFree && !token) {
+      // Preview / free lessons stream directly for guests — no session needed
       setStreamSrc(baseStreamUrl);
       return;
     }
@@ -219,7 +220,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [lesson._id, courseId]);
 
   return (
-    <div className="relative w-full h-96 rounded-2xl overflow-hidden shadow-2xl border border-zinc-205 dark:border-zinc-800 bg-black group">
+    <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 bg-black group">
       {streamSrc && !playerError ? (
         // `key` forces a full remount (fresh player store + media element)
         // whenever the lesson changes, equivalent to the old dispose()/re-create.
