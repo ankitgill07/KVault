@@ -18,7 +18,7 @@ export function FooterNavigation({
 }: Props) {
   return (
     <div className="sticky bottom-0 z-10 border-t border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 backdrop-blur-md transition-colors duration-200">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-5">
+      <div className="flex w-full items-center justify-between gap-4 px-6 sm:px-8 py-5">
         <Button
           variant="outline"
           onClick={onPrevious}
