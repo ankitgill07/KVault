@@ -172,20 +172,13 @@ export const createStreamSession = async (
     }
 
     // ── 3. Authorization ─────────────────────────────────────
-    // Preview lessons don't need a stream session
-    if (lesson.isPreview || lesson.isFree) {
-      sendError(
-        res,
-        "Preview lessons do not require a stream session",
-        400,
-      );
-      return;
-    }
-
+    const isPreviewOrFree = lesson.isPreview || lesson.isFree;
     const userRole = req.user?.role;
     let hasAccess = false;
 
-    if (userRole === "admin") {
+    if (isPreviewOrFree) {
+      hasAccess = true;
+    } else if (userRole === "admin") {
       hasAccess = true;
     } else {
       const course = await Course.findById(lesson.course);
@@ -196,7 +189,7 @@ export const createStreamSession = async (
       }
     }
 
-    if (!hasAccess) {
+    if (!isPreviewOrFree && !hasAccess) {
       const enrollment = await Enrollment.findOne({
         student: userId,
         course: lesson.course,
@@ -320,21 +313,30 @@ export const getLessonStream = async (
       res.status(404).send("Lesson not found");
       return;
     }
-    if (!lesson.isPublished) {
-      res.status(404).send("Lesson is not available");
-      return;
-    }
     if (!lesson.videoKey) {
       res.status(404).send("Video file not found for this lesson");
       return;
     }
 
-    // ── 2. Authorization ─────────────────────────────────────
+    // Find course to verify if requester is instructor or admin
+    const course = await Course.findById(lesson.course);
     const userId = toIdString(req.user?._id);
     const userRole = req.user?.role;
+    
+    const isInstructorOrAdmin = userId && (
+      userRole === "admin" || 
+      (course && toIdString(course.primaryInstructor) === userId)
+    );
+
+    if (!lesson.isPublished && !isInstructorOrAdmin) {
+      res.status(404).send("Lesson is not available");
+      return;
+    }
+
+    // ── 2. Authorization ─────────────────────────────────────
     const isPreviewOrFree = lesson.isPreview || lesson.isFree;
 
-    if (!isPreviewOrFree) {
+    if (!isPreviewOrFree && !isInstructorOrAdmin) {
       // Paid lesson — full auth required
       if (!userId) {
         res.status(401).send("Authentication required");
@@ -342,27 +344,13 @@ export const getLessonStream = async (
       }
 
       let hasAccess = false;
-
-      if (userRole === "admin") {
+      const enrollment = await Enrollment.findOne({
+        student: userId,
+        course: lesson.course,
+        status: "active",
+      } as any);
+      if (enrollment) {
         hasAccess = true;
-      } else {
-        const course = await Course.findById(lesson.course);
-        if (course) {
-          if (toIdString(course.primaryInstructor) === userId) {
-            hasAccess = true;
-          }
-        }
-      }
-
-      if (!hasAccess) {
-        const enrollment = await Enrollment.findOne({
-          student: userId,
-          course: lesson.course,
-          status: "active",
-        } as any);
-        if (enrollment) {
-          hasAccess = true;
-        }
       }
 
       if (!hasAccess) {
@@ -471,5 +459,275 @@ export const getLessonStream = async (
     if (!res.headersSent) {
       res.status(500).send("Internal server error");
     }
+  }
+};
+
+// ─── Lesson Resources Controllers ─────────────────────────────────────────────
+
+import Resource from "../models/resourceModel.js";
+
+export const addLessonResource = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const rawId = req.params.id;
+    const lessonId = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!lessonId) {
+      sendError(res, "Lesson ID is required", 400);
+      return;
+    }
+
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      sendError(res, "Lesson not found", 404);
+      return;
+    }
+
+    // Verify authorized user is instructor or admin
+    const userId = toIdString(req.user?._id);
+    const userRole = req.user?.role;
+    const course = await Course.findById(lesson.course);
+    const isInstructorOrAdmin = userId && (
+      userRole === "admin" || 
+      (course && toIdString(course.primaryInstructor) === userId)
+    );
+
+    if (!isInstructorOrAdmin) {
+      sendError(res, "Unauthorized to manage this lesson's resources", 403);
+      return;
+    }
+
+    const { title, description, type, url, fileName, fileSize, fileType } = req.body;
+
+    if (!title || !type || !url) {
+      sendError(res, "Missing required fields: title, type, url", 400);
+      return;
+    }
+
+    // Ensure type is not video
+    if (type === "video" || (fileType && fileType.startsWith("video/"))) {
+      sendError(res, "Video files are not allowed as resources", 400);
+      return;
+    }
+
+    const newResource = await Resource.create({
+      lesson: lessonId,
+      title,
+      description: description || null,
+      type,
+      url,
+      fileName: fileName || "file",
+      fileSize: fileSize || 0,
+      fileType: fileType || "application/octet-stream",
+    });
+
+    // Add resource reference to the lesson
+    await Lesson.findByIdAndUpdate(lessonId, {
+      $push: { resources: newResource._id }
+    });
+
+    sendSuccess(res, "Resource added successfully", newResource, 201);
+  } catch (error: any) {
+    console.error("[addLessonResource]", error);
+    sendError(res, error.message || "Failed to add resource", 500);
+  }
+};
+
+export const getLessonResources = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const rawId = req.params.id;
+    const lessonId = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!lessonId) {
+      sendError(res, "Lesson ID is required", 400);
+      return;
+    }
+
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      sendError(res, "Lesson not found", 404);
+      return;
+    }
+
+    // Check authorization: if paid lesson, student must be enrolled, or be instructor/admin
+    const userId = toIdString(req.user?._id);
+    const userRole = req.user?.role;
+    const isPreviewOrFree = lesson.isPreview || lesson.isFree;
+
+    if (!isPreviewOrFree) {
+      let hasAccess = false;
+      if (userId) {
+        if (userRole === "admin") {
+          hasAccess = true;
+        } else {
+          const course = await Course.findById(lesson.course);
+          if (course && toIdString(course.primaryInstructor) === userId) {
+            hasAccess = true;
+          } else {
+            const enrollment = await Enrollment.findOne({
+              student: userId,
+              course: lesson.course,
+              status: "active",
+            } as any);
+            if (enrollment) {
+              hasAccess = true;
+            }
+          }
+        }
+      }
+
+      if (!hasAccess) {
+        sendError(res, "Access denied. Please purchase the course to access resources.", 403);
+        return;
+      }
+    }
+
+    const resources = await Resource.find({ lesson: lessonId });
+    sendSuccess(res, "Resources fetched successfully", resources);
+  } catch (error: any) {
+    console.error("[getLessonResources]", error);
+    sendError(res, error.message || "Failed to fetch resources", 500);
+  }
+};
+
+export const deleteLessonResource = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { id, resourceId } = req.params;
+    const lessonId = Array.isArray(id) ? id[0] : id;
+    if (!lessonId || !resourceId) {
+      sendError(res, "Lesson ID and Resource ID are required", 400);
+      return;
+    }
+
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      sendError(res, "Lesson not found", 404);
+      return;
+    }
+
+    // Verify authorized user is instructor or admin
+    const userId = toIdString(req.user?._id);
+    const userRole = req.user?.role;
+    const course = await Course.findById(lesson.course);
+    const isInstructorOrAdmin = userId && (
+      userRole === "admin" || 
+      (course && toIdString(course.primaryInstructor) === userId)
+    );
+
+    if (!isInstructorOrAdmin) {
+      sendError(res, "Unauthorized to manage this lesson's resources", 403);
+      return;
+    }
+
+    const resource = await Resource.findById(resourceId);
+    if (!resource) {
+      sendError(res, "Resource not found", 404);
+      return;
+    }
+
+    // If it's a file uploaded to R2, delete the file from R2
+    if (resource.type !== "link") {
+      try {
+        const urlObj = new URL(resource.url);
+        const key = urlObj.pathname.substring(1);
+        if (key) {
+          const { deleteFileFromR2 } = await import("../services/video/cloudflareR2Service.js");
+          await deleteFileFromR2(key);
+        }
+      } catch (e) {
+        console.error("Failed to delete resource file from R2:", e);
+      }
+    }
+
+    await Resource.findByIdAndDelete(resourceId);
+
+    // Remove resource reference from lesson
+    await Lesson.findByIdAndUpdate(lessonId, {
+      $pull: { resources: resourceId }
+    });
+
+    sendSuccess(res, "Resource deleted successfully");
+  } catch (error: any) {
+    console.error("[deleteLessonResource]", error);
+    sendError(res, error.message || "Failed to delete resource", 500);
+  }
+};
+
+export const downloadLessonResource = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { id, resourceId } = req.params;
+    const lessonId = Array.isArray(id) ? id[0] : id;
+    if (!lessonId || !resourceId) {
+      sendError(res, "Lesson ID and Resource ID are required", 400);
+      return;
+    }
+
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      sendError(res, "Lesson not found", 404);
+      return;
+    }
+
+    // Check authorization: if paid lesson, student must be enrolled, or be instructor/admin
+    const userId = toIdString(req.user?._id);
+    const userRole = req.user?.role;
+    const isPreviewOrFree = lesson.isPreview || lesson.isFree;
+
+    if (!isPreviewOrFree) {
+      let hasAccess = false;
+      if (userId) {
+        if (userRole === "admin") {
+          hasAccess = true;
+        } else {
+          const course = await Course.findById(lesson.course);
+          if (course && toIdString(course.primaryInstructor) === userId) {
+            hasAccess = true;
+          } else {
+            const enrollment = await Enrollment.findOne({
+              student: userId,
+              course: lesson.course,
+              status: "active",
+            } as any);
+            if (enrollment) {
+              hasAccess = true;
+            }
+          }
+        }
+      }
+
+      if (!hasAccess) {
+        sendError(res, "Access denied. Please purchase the course to download resources.", 403);
+        return;
+      }
+    }
+
+    const resource = await Resource.findById(resourceId);
+    if (!resource) {
+      sendError(res, "Resource not found", 404);
+      return;
+    }
+
+    if (resource.type === "link") {
+      sendSuccess(res, "Resource link fetched", { downloadUrl: resource.url });
+      return;
+    }
+
+    try {
+      const urlObj = new URL(resource.url);
+      const key = urlObj.pathname.substring(1);
+      
+      const { r2GetPreSignedUrl } = await import("../services/video/cloudflareR2Service.js");
+      const downloadUrl = await r2GetPreSignedUrl({
+        key,
+        fileName: resource.fileName,
+      });
+
+      await Resource.findByIdAndUpdate(resourceId, { $inc: { downloadCount: 1 } });
+
+      sendSuccess(res, "Download URL generated successfully", { downloadUrl });
+    } catch (e: any) {
+      console.error("Failed to generate download URL for resource:", e);
+      sendSuccess(res, "Resource URL fetched", { downloadUrl: resource.url });
+    }
+  } catch (error: any) {
+    console.error("[downloadLessonResource]", error);
+    sendError(res, error.message || "Failed to download resource", 500);
   }
 };
