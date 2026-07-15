@@ -1,10 +1,19 @@
-import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { r2 } from "../../db/r2.js";
 
 const BUCKET_NAME = process.env.R2_BUCKET_NAME || "kvaultcousers";
 
-export const r2UploadPresignedUrl = async (fullFileName: string, type: string): Promise<string> => {
+export const r2UploadPresignedUrl = async (
+  fullFileName: string,
+  type: string,
+): Promise<string> => {
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: fullFileName,
@@ -19,7 +28,13 @@ export const r2UploadPresignedUrl = async (fullFileName: string, type: string): 
   return url;
 };
 
-export const r2GetPreSignedUrl = async ({ key, fileName }: { key: string; fileName: string }): Promise<string> => {
+export const r2GetPreSignedUrl = async ({
+  key,
+  fileName,
+}: {
+  key: string;
+  fileName: string;
+}): Promise<string> => {
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
@@ -38,13 +53,20 @@ export interface UploadThumbnailResult {
 
 export const uploadThumbnail = async (
   file: Express.Multer.File,
-  courseId: string
+  courseId: string,
 ): Promise<UploadThumbnailResult> => {
   try {
     // Validate file type
-    const allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+    ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new Error("Invalid file type. Only JPG, JPEG, PNG, and WebP files are allowed.");
+      throw new Error(
+        "Invalid file type. Only JPG, JPEG, PNG, and WebP files are allowed.",
+      );
     }
 
     // Validate file size (max 5MB)
@@ -71,7 +93,9 @@ export const uploadThumbnail = async (
 
     // Construct the public URL using R2 bucket configuration
     // R2 public bucket URL format: https://[bucket-name].[r2-dev-domain]/[object-key]
-    const r2PublicUrl = process.env.R2_PUBLIC_URL || `https://pub-${process.env.R2_ACCOUNT_ID || "synkdrive"}.r2.dev`;
+    const r2PublicUrl =
+      process.env.R2_PUBLIC_URL ||
+      `https://app.kvault-${process.env.R2_ACCOUNT_ID ?? "synkdrive"}.online`;
     const url = `${r2PublicUrl}/${fileName}`;
 
     return {
@@ -80,7 +104,10 @@ export const uploadThumbnail = async (
     };
   } catch (error) {
     console.error("[uploadThumbnail] Error uploading thumbnail:", error);
-    throw new Error("Failed to upload thumbnail: " + (error instanceof Error ? error.message : "Unknown error"));
+    throw new Error(
+      "Failed to upload thumbnail: " +
+        (error instanceof Error ? error.message : "Unknown error"),
+    );
   }
 };
 
@@ -94,7 +121,10 @@ export const deleteThumbnail = async (key: string): Promise<void> => {
     await r2.send(command);
   } catch (error) {
     console.error("[deleteThumbnail] Error deleting thumbnail:", error);
-    throw new Error("Failed to delete thumbnail: " + (error instanceof Error ? error.message : "Unknown error"));
+    throw new Error(
+      "Failed to delete thumbnail: " +
+        (error instanceof Error ? error.message : "Unknown error"),
+    );
   }
 };
 
@@ -136,7 +166,9 @@ export const deleteFolderFromR2 = async (prefix: string): Promise<void> => {
           },
         });
         await r2.send(deleteCommand);
-        console.log(`[R2] Deleted ${listResult.Contents.length} files under prefix: ${prefix}`);
+        console.log(
+          `[R2] Deleted ${listResult.Contents.length} files under prefix: ${prefix}`,
+        );
       }
 
       continuationToken = listResult.NextContinuationToken;
@@ -150,11 +182,18 @@ export const deleteFolderFromR2 = async (prefix: string): Promise<void> => {
 
 export const uploadAvatarToR2 = async (
   file: Express.Multer.File,
-  userId: string
+  userId: string,
 ): Promise<{ url: string; key: string }> => {
-  const allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+  const allowedMimeTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+  ];
   if (!allowedMimeTypes.includes(file.mimetype)) {
-    throw new Error("Invalid file type. Only JPG, JPEG, PNG, and WebP files are allowed.");
+    throw new Error(
+      "Invalid file type. Only JPG, JPEG, PNG, and WebP files are allowed.",
+    );
   }
 
   const maxSize = 5 * 1024 * 1024;
@@ -176,7 +215,9 @@ export const uploadAvatarToR2 = async (
 
   await r2.send(command);
 
-  const r2PublicUrl = process.env.R2_PUBLIC_URL || `https://pub-${process.env.R2_ACCOUNT_ID || "synkdrive"}.r2.dev`;
+  const r2PublicUrl =
+    process.env.R2_PUBLIC_URL ||
+    `https://pub-${process.env.R2_ACCOUNT_ID || "synkdrive"}.r2.dev`;
   const url = `${r2PublicUrl}/${fileName}`;
 
   return { url, key: fileName };

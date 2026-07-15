@@ -36,7 +36,7 @@ export const createCourse = async (
 
   // Parse thumbnail info if present
   if (data.thumbnailUrl) {
-    const r2PublicUrl = process.env.R2_PUBLIC_URL || "https://pub-121dca38669f707d1ba67a1b1b19ca9b.r2.dev";
+    const r2PublicUrl = process.env.R2_PUBLIC_URL || "https://app.kvault.online";
     if (data.thumbnailUrl.includes("r2.dev") || data.thumbnailUrl.includes(r2PublicUrl)) {
       try {
         const urlObj = new URL(data.thumbnailUrl);
@@ -207,7 +207,7 @@ export const updateCourse = async (
   try {
     // Parse thumbnail info if present
     if (data.thumbnailUrl) {
-      const r2PublicUrl = process.env.R2_PUBLIC_URL || "https://pub-121dca38669f707d1ba67a1b1b19ca9b.r2.dev";
+      const r2PublicUrl = process.env.R2_PUBLIC_URL || "https://app.kvault.online";
       if (data.thumbnailUrl.includes("r2.dev") || data.thumbnailUrl.includes(r2PublicUrl)) {
         try {
           const urlObj = new URL(data.thumbnailUrl);
