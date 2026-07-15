@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Sparkles } from 'lucide-react';
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Eye, EyeOff, Sparkles } from "lucide-react";
 
 interface RegistrationFormProps {
   onSubmit: (data: RegistrationData) => void;
@@ -25,8 +25,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   error,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordValue, setPasswordValue] = useState('');
+  const [passwordValue, setPasswordValue] = useState("");
 
   const {
     register,
@@ -35,10 +34,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     watch,
   } = useForm<RegistrationData>({
     defaultValues: {
-      fullName: 'Ankit',
-      email: 'gillankit076@gmail.com',
-      password: 'Ankit@1234',
-      confirmPassword: 'Ankit@1234',
+      fullName: "",
+      email: "",
+      password: "",
       agreeTerms: true,
     },
   });
@@ -51,15 +49,15 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     });
   };
 
-  const passwordWatch = watch('password');
+  const passwordWatch = watch("password");
 
   const getPasswordStrength = () => {
     if (!passwordWatch)
       return {
         score: 0,
-        text: 'No password',
-        color: 'bg-brand-border',
-        width: 'w-0',
+        text: "No password",
+        color: "bg-brand-border",
+        width: "w-0",
       };
 
     let score = 0;
@@ -72,28 +70,28 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     switch (score) {
       case 1:
       case 2:
-        return { score, text: 'Weak', color: 'bg-red-500', width: 'w-1/3' };
+        return { score, text: "Weak", color: "bg-red-500", width: "w-1/3" };
       case 3:
       case 4:
         return {
           score,
-          text: 'Medium',
-          color: 'bg-brand-gold',
-          width: 'w-2/3',
+          text: "Medium",
+          color: "bg-brand-gold",
+          width: "w-2/3",
         };
       case 5:
         return {
           score,
-          text: 'Strong',
-          color: 'bg-brand-success',
-          width: 'w-full',
+          text: "Strong",
+          color: "bg-brand-success",
+          width: "w-full",
         };
       default:
         return {
           score: 0,
-          text: 'Very Weak',
-          color: 'bg-red-400',
-          width: 'w-1/6',
+          text: "Very Weak",
+          color: "bg-red-400",
+          width: "w-1/6",
         };
     }
   };
@@ -115,7 +113,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         <input
           type="text"
           placeholder="John Doe"
-          {...register('fullName', { required: 'Name is required' })}
+          {...register("fullName", { required: "Name is required" })}
           className="w-full px-5 py-2.5 border border-brand-border rounded-[20px] text-sm font-semibold transition-all focus:border-brand-purple focus:ring-4 focus:ring-brand-purple/5"
           disabled={isLoading}
         />
@@ -128,15 +126,17 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 
       {/* Email */}
       <div className="space-y-1">
-        <label className="text-xs font-bold text-brand-navy">Email Address</label>
+        <label className="text-xs font-bold text-brand-navy">
+          Email Address
+        </label>
         <input
           type="email"
           placeholder="john@example.com"
-          {...register('email', {
-            required: 'Email is required',
+          {...register("email", {
+            required: "Email is required",
             pattern: {
               value: /^\S+@\S+$/i,
-              message: 'Invalid email address',
+              message: "Invalid email address",
             },
           })}
           className="w-full px-5 py-2.5 border border-brand-border rounded-[20px] text-sm font-semibold transition-all focus:border-brand-purple focus:ring-4 focus:ring-brand-purple/5"
@@ -154,22 +154,22 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         <label className="text-xs font-bold text-brand-navy">Password</label>
         <div className="relative">
           <input
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             placeholder="••••••••"
-            {...register('password', {
-              required: 'Password is required',
+            {...register("password", {
+              required: "Password is required",
               minLength: {
                 value: 6,
-                message: 'Password must be at least 6 characters',
+                message: "Password must be at least 6 characters",
               },
               pattern: {
                 value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
                 message:
-                  'Password must contain uppercase, lowercase, and number',
+                  "Password must contain uppercase, lowercase, and number",
               },
             })}
             onChange={(e) => {
-              register('password').onChange(e);
+              register("password").onChange(e);
               setPasswordValue(e.target.value);
             }}
             className="w-full pl-5 pr-12 py-2.5 border border-brand-border rounded-[20px] text-sm font-semibold transition-all focus:border-brand-purple focus:ring-4 focus:ring-brand-purple/5"
@@ -197,10 +197,10 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               <span
                 className={
                   strength.score <= 2
-                    ? 'text-red-500'
+                    ? "text-red-500"
                     : strength.score <= 4
-                      ? 'text-brand-gold'
-                      : 'text-brand-success'
+                      ? "text-brand-gold"
+                      : "text-brand-success"
                 }
               >
                 {strength.text}
@@ -221,51 +221,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         )}
       </div>
 
-      {/* Confirm Password */}
-      <div className="space-y-1">
-        <label className="text-xs font-bold text-brand-navy">
-          Confirm Password
-        </label>
-        <div className="relative">
-          <input
-            type={showConfirmPassword ? 'text' : 'password'}
-            placeholder="••••••••"
-            {...register('confirmPassword', {
-              required: 'Please confirm your password',
-              validate: (val, formValues) =>
-                val === formValues.password || 'Passwords do not match',
-            })}
-            className="w-full pl-5 pr-12 py-2.5 border border-brand-border rounded-[20px] text-sm font-semibold transition-all focus:border-brand-purple focus:ring-4 focus:ring-brand-purple/5"
-            disabled={isLoading}
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-gray hover:text-brand-navy transition-colors cursor-pointer"
-            disabled={isLoading}
-          >
-            {showConfirmPassword ? (
-              <EyeOff className="w-4 h-4" />
-            ) : (
-              <Eye className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-
-        {errors.confirmPassword && (
-          <p className="text-xs text-red-500 font-bold mt-0.5">
-            {errors.confirmPassword.message}
-          </p>
-        )}
-      </div>
-
       {/* Agree to Terms */}
       <div className="pt-1">
         <label className="flex items-start gap-2 text-xs font-bold text-brand-navy cursor-pointer select-none">
           <input
             type="checkbox"
-            {...register('agreeTerms', {
-              required: 'You must agree to the Terms of Service',
+            {...register("agreeTerms", {
+              required: "You must agree to the Terms of Service",
             })}
             className="w-4.5 h-4.5 mt-0.5 rounded-lg border-brand-border text-brand-purple focus:ring-brand-purple"
             disabled={isLoading}
@@ -287,14 +249,8 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         disabled={isLoading}
         className="w-full py-3.5 rounded-[20px] bg-gradient-to-r from-brand-purple to-brand-blue hover:opacity-95 text-white text-sm font-bold transition-all duration-200 premium-shadow hover:scale-[1.01] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? 'Sending Verification Code...' : 'Create Account'}
+        {isLoading ? "Sending Verification Code..." : "Create Account"}
       </button>
-
-      {/* Info Badge */}
-      <div className="flex items-center gap-1.5 px-3 py-2 bg-brand-purple/10 text-brand-purple rounded-full text-[10px] font-bold w-fit mx-auto">
-        <Sparkles className="w-3 h-3" />
-        <span>You'll verify your email next</span>
-      </div>
     </form>
   );
 };

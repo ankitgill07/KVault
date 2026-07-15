@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Hexagon, ArrowLeft, Sparkles, CheckCircle } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Hexagon,
+  ArrowLeft,
+  Sparkles,
+  CheckCircle,
+} from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { authService } from "../services/authService";
-
 
 export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +31,6 @@ export const Login: React.FC = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
-
 
   const {
     register,
@@ -47,11 +52,12 @@ export const Login: React.FC = () => {
       await login(data.email, data.password);
       navigate("/");
     } catch (err: any) {
-      const errorMessage = err.message || "Login failed. Please check your credentials.";
+      const errorMessage =
+        err.message || "Login failed. Please check your credentials.";
       // If email is not verified, redirect to OTP verification page
       if (errorMessage.includes("verify your email")) {
         navigate(`/verify-otp?email=${encodeURIComponent(data.email)}`, {
-          state: { from: '/login' },
+          state: { from: "/login" },
           replace: true,
         });
       } else {
@@ -172,12 +178,7 @@ export const Login: React.FC = () => {
                 <label className="text-xs font-bold text-brand-navy">
                   Password
                 </label>
-                <a
-                  href="#"
-                  className="text-xs font-bold text-brand-purple hover:underline"
-                >
-                  Forgot password?
-                </a>
+    
               </div>
               <div className="relative">
                 <input
@@ -242,62 +243,6 @@ export const Login: React.FC = () => {
               Or continue with
             </span>
           </div>
-
-          {/* Social Buttons */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              disabled={isLoading}
-              className="flex items-center justify-center gap-2 py-3 border border-brand-border rounded-[20px] text-xs font-bold text-brand-navy hover:bg-bg-secondary transition-all cursor-pointer hover:scale-[1.01] disabled:opacity-50"
-            >
-              <svg
-                className="w-4 h-4 text-red-500 shrink-0"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M12.24 10.285V13.4h6.887C18.2 15.614 15.645 18 12.24 18c-3.86 0-7-3.14-7-7s3.14-7 7-7c1.73 0 3.3.63 4.52 1.68l2.42-2.42C17.435 1.58 14.995 0 12.24 0 6.033 0 1 5.033 1 11.24s5.033 11.24 11.24 11.24c5.897 0 10.748-4.229 10.748-10.286 0-.69-.08-1.355-.22-1.909H12.24z" />
-              </svg>
-              <span>Google</span>
-            </button>
-            <button
-              type="button"
-              disabled={isLoading}
-              className="flex items-center justify-center gap-2 py-3 border border-brand-border rounded-[20px] text-xs font-bold text-brand-navy hover:bg-bg-secondary transition-all cursor-pointer hover:scale-[1.01] disabled:opacity-50"
-            >
-              <svg
-                className="w-4 h-4 text-brand-navy shrink-0"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.164 22 16.418 22 12c0-5.523-4.477-10-10-10z"
-                />
-              </svg>
-              <span>GitHub</span>
-            </button>
-          </div>
-
-          {/* Demo Filler Panel */}
-          <div className="mt-8 p-4 bg-brand-section/50 rounded-[20px] border border-brand-blue/10 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-bold text-brand-navy">
-                Examine with Demo Account
-              </p>
-              <p className="text-[10px] text-brand-gray mt-0.5">
-                Loads analytics & dashboard instantly.
-              </p>
-            </div>
-            <button
-              onClick={fillDemo}
-              className="px-3.5 py-2 bg-bg-card hover:bg-bg-secondary border border-brand-border rounded-xl text-[10px] font-extrabold text-brand-purple transition-all cursor-pointer shrink-0"
-            >
-              Autofill
-            </button>
-          </div>
-
-          {/* Register Callout */}
           <div className="mt-8 text-center text-xs font-bold text-brand-gray">
             New to KVault?{" "}
             <button

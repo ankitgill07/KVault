@@ -103,7 +103,10 @@ export const Header = () => {
       <nav className="glass-nav premium-shadow w-full">
         <div className="max-w-7xl mx-auto w-full px-4 md:px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-2 cursor-pointer group">
+            <Link
+              to="/"
+              className="flex items-center gap-2 cursor-pointer group"
+            >
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-purple to-brand-blue flex items-center justify-center text-white premium-shadow transition-transform group-hover:scale-105">
                 <Hexagon className="w-6 h-6" />
               </div>
@@ -179,7 +182,11 @@ export const Header = () => {
             <button
               onClick={toggleTheme}
               className="w-10 h-10 rounded-full hover:bg-bg-secondary flex items-center justify-center text-brand-navy hover:text-brand-purple transition-colors cursor-pointer"
-              title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+              title={
+                theme === "light"
+                  ? "Switch to Dark Mode"
+                  : "Switch to Light Mode"
+              }
             >
               {theme === "light" ? (
                 <Moon className="w-5 h-5" />
@@ -254,7 +261,7 @@ export const Header = () => {
                   Sign In
                 </Link>
                 <Link
-                  to="/register"
+                  to="/sign-up"
                   className="px-4 py-2 text-xs font-extrabold text-white bg-brand-purple hover:bg-brand-purple-light rounded-xl transition-all premium-shadow cursor-pointer"
                 >
                   Sign Up
