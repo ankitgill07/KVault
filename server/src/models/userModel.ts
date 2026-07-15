@@ -40,7 +40,10 @@ const UserSchema = new Schema<IUser>(
     },
     avatar: {
       type: String,
-      default: null,
+      default: function () {
+        const encodedName = encodeURIComponent(this.name || "User");
+        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodedName}`;
+      },
     },
     avatarKey: {
       type: String,
@@ -53,10 +56,7 @@ const UserSchema = new Schema<IUser>(
     },
     phoneNumber: {
       type: String,
-      default: function () {
-        const encodedName = encodeURIComponent(this.name || "User");
-        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodedName}`;
-      },
+      default: null,
     },
 
     // ── Social Links ────────────────────────────────
