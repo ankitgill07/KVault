@@ -5,7 +5,7 @@ import { StepTwo } from "./StepTwo";
 import { FooterNavigation } from "./FooterNavigation";
 import useCreateCourses from "../../../hooks/useCreateCourses";
 import { Card } from "../../../components/ui/card";
-import { GraduationCap, AlertCircle } from "lucide-react";
+import { Hexagon, AlertCircle } from "lucide-react";
 
 const TOTAL_STEPS = 2;
 
@@ -36,20 +36,20 @@ export default function Index() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 font-sans justify-between transition-colors duration-200">
-      {/* Top logo header - minimalist */}
-      <div className="mx-auto w-full max-w-3xl px-4 pt-12 sm:px-6">
+      {/* Top logo header - minimalist & full width */}
+      <header className="w-full border-b border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 backdrop-blur-md py-4 px-6 sm:px-8">
         <div
           onClick={() => navigate("/instructor/courses")}
           className="flex items-center gap-2 cursor-pointer w-fit group"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white shadow-md shadow-violet-500/10 group-hover:scale-105 transition-transform duration-200">
-            <GraduationCap className="h-5 w-5" />
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-purple to-brand-blue flex items-center justify-center text-white premium-shadow transition-transform group-hover:scale-105">
+            <Hexagon className="w-6 h-6" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
-            Kvault <span className="text-violet-600">LMS</span>
+          <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-brand-navy to-brand-purple bg-clip-text text-transparent">
+            KVault
           </span>
         </div>
-      </div>
+      </header>
 
       {/* Main wizard step content */}
       <main className="flex-1 flex items-center justify-center p-4 py-8">
