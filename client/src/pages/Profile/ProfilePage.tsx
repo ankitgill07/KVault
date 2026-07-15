@@ -9,7 +9,6 @@ import ProfileView from './ProfileView';
 import ProfileEditForm from './ProfileEditForm';
 import ProfileLoading from './ProfileLoading';
 import AchievementsTab from './AchievementsTab';
-import MyCoursesTab from './MyCoursesTab';
 import { type Profile } from '../../lib/types';
 import { userService } from '../../services/userService';
 import { useUser } from '../../context/UserContext';
@@ -72,7 +71,7 @@ export default function ProfilePage() {
     setSaveState('saving');
     try {
       const response = await userService.updateProfile({
-        profileName: values.username,
+        name: values.full_name,
         bio: values.bio,
         twitterUrl: values.twitter_url,
         linkedinUrl: values.linkedin_url,
@@ -156,7 +155,6 @@ export default function ProfilePage() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-6">
                 <TabsTrigger value="profile">Profile</TabsTrigger>
-                <TabsTrigger value="my-courses">My Courses</TabsTrigger>
                 <TabsTrigger value="achievements">Achievements</TabsTrigger>
               </TabsList>
 
@@ -181,16 +179,6 @@ export default function ProfilePage() {
                     )}
                   </motion.div>
                 </AnimatePresence>
-              </TabsContent>
-
-              <TabsContent value="my-courses">
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <MyCoursesTab />
-                </motion.div>
               </TabsContent>
 
               <TabsContent value="achievements">

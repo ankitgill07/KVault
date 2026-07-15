@@ -1,4 +1,4 @@
-import { Mail, Globe, User, AtSign } from 'lucide-react';
+import { Mail, Globe, User } from 'lucide-react';
 import type { Profile } from '../../lib/types';
 import { FaXTwitter } from "react-icons/fa6";
 import { FaLinkedin } from "react-icons/fa6";
@@ -81,7 +81,6 @@ export default function ProfileView({ profile }: { profile: Profile }) {
         </h3>
         <div className="grid gap-5 sm:grid-cols-2">
           <InfoRow icon={User} label="Full Name" value={profile.full_name} />
-          <InfoRow icon={AtSign} label="Username" value={profile.username ? `@${profile.username}` : ''} />
           <InfoRow icon={Mail} label="Email Address" value={profile.email} />
         </div>
       </section>

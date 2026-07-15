@@ -131,22 +131,13 @@ export default function ProfileEditForm({
           Personal Information
         </h3>
         <div className="grid gap-5 sm:grid-cols-2">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="full_name">Full Name</Label>
             <div className="relative">
               <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input id="full_name" placeholder="Enter your full name" className="pl-10" {...register('full_name')} disabled />
+              <Input id="full_name" placeholder="Enter your full name" className="pl-10" {...register('full_name')} required />
             </div>
             {errors.full_name && <p className="text-sm text-destructive">{errors.full_name.message}</p>}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="username">Profile Name</Label>
-            <div className="relative">
-              <AtSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input id="username" placeholder="Enter profile name" className="pl-10" {...register('username')} />
-            </div>
-            {errors.username && <p className="text-sm text-destructive">{errors.username.message}</p>}
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
