@@ -67,13 +67,17 @@ export const addToCart = async (
 
   let cart = await Cart.findOne({ user: toObjectId(userId) });
 
+  const itemPrice = (course.discountPrice !== undefined && course.discountPrice !== null)
+    ? course.discountPrice
+    : (course.price || 0);
+
   if (!cart) {
     cart = await Cart.create({
       user: toObjectId(userId),
       items: [
         {
           course: objectId,
-          priceAtAdd: priceAtAdd || course.price || 0,
+          priceAtAdd: itemPrice,
           addedAt: new Date(),
         },
       ],
@@ -91,7 +95,7 @@ export const addToCart = async (
 
   cart.items.push({
     course: objectId,
-    priceAtAdd: priceAtAdd || course.price || 0,
+    priceAtAdd: itemPrice,
     addedAt: new Date(),
   });
 
