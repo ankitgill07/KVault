@@ -22,4 +22,10 @@ router.post("/:id/stream-session", authenticate, lessonController.createStreamSe
 // Heartbeat to keep a stream session alive
 router.post("/:id/heartbeat", authenticate, lessonController.handleHeartbeat);
 
+// ─── Lesson Resources ────────────────────────────────────────────────────────
+router.post("/:id/resources", authenticate, authorize("instructor", "admin"), lessonController.addLessonResource);
+router.get("/:id/resources", optionalAuthenticate, lessonController.getLessonResources);
+router.delete("/:id/resources/:resourceId", authenticate, authorize("instructor", "admin"), lessonController.deleteLessonResource);
+router.get("/:id/resources/:resourceId/download", optionalAuthenticate, lessonController.downloadLessonResource);
+
 export default router;
