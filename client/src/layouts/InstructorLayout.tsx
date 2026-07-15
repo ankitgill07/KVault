@@ -1,10 +1,10 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, BookOpen, PlusCircle, Users, Star, MessageCircle,
-  ClipboardList, Megaphone, User, Settings, Menu, X, Bell, ChevronDown,
-  BarChart3,
+  LayoutDashboard, BookOpen, PlusCircle, Users, Star, User, Settings, Menu, X, Bell, ChevronDown,
+  BarChart3, Hexagon,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useUser } from '../context/UserContext';
 
 const navigation = [
   { name: 'Dashboard',     href: '/instructor',              icon: LayoutDashboard },
@@ -12,16 +12,13 @@ const navigation = [
   { name: 'Students',      href: '/instructor/students',      icon: Users },
   { name: 'Analytics',     href: '/instructor/analytics',     icon: BarChart3 },
   { name: 'Reviews',       href: '/instructor/reviews',       icon: Star },
-  { name: 'Assignments',   href: '/instructor/assignments',   icon: ClipboardList },
-  { name: 'Announcements', href: '/instructor/announcements', icon: Megaphone },
-  { name: 'Community',     href: '/instructor/community',     icon: MessageCircle },
-  { name: 'Profile',       href: '/instructor/profile',       icon: User },
 ];
 
 export default function InstructorLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useUser();
 
   const getCurrentPageTitle = () => {
     const activeRoute = navigation.find(n => location.pathname === n.href || location.pathname.startsWith(n.href + '/'));
@@ -47,13 +44,20 @@ export default function InstructorLayout() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-800/80">
-            <button onClick={() => navigate('/instructor')} className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-tr from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-900/30">
-                <span className="text-white font-bold text-xl tracking-tight">K</span>
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 cursor-pointer group text-left"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-purple to-brand-blue flex items-center justify-center text-white premium-shadow transition-transform group-hover:scale-105">
+                <Hexagon className="w-6 h-6" />
               </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-white text-sm tracking-wide">Kvault LMS</span>
-                <span className="text-[10px] text-zinc-500 font-medium tracking-wider uppercase">Instructor Console</span>
+              <div className="flex flex-col text-left">
+                <span className="font-extrabold text-base tracking-tight bg-gradient-to-r from-white to-brand-purple bg-clip-text text-transparent">
+                  KVault
+                </span>
+                <span className="text-[9px] text-zinc-500 font-semibold tracking-wider uppercase leading-none">
+                  Instructor Console
+                </span>
               </div>
             </button>
             <button
@@ -100,23 +104,7 @@ export default function InstructorLayout() {
             })}
           </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-zinc-800/80 bg-zinc-950/50">
-            <NavLink
-              to="/instructor/settings"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-violet-600 to-violet-500 text-white shadow-md shadow-violet-900/20'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
-                }`
-              }
-              onClick={() => setSidebarOpen(false)}
-            >
-              <Settings size={17} />
-              <span>Settings</span>
-            </NavLink>
-          </div>
+
         </div>
       </aside>
 
@@ -145,12 +133,20 @@ export default function InstructorLayout() {
               </button>
               <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
               <button className="flex items-center gap-2.5 p-1.5 pr-3 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all">
-                <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-700 dark:text-violet-300 font-semibold text-sm">
-                  JD
-                </div>
-                <div className="hidden sm:block">
-                  <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-none">John Doe</p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5 leading-none">Instructor</p>
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-8 h-8 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-700 dark:text-violet-300 font-semibold text-sm">
+                    {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'IN'}
+                  </div>
+                )}
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-none">{user?.name || 'Instructor'}</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5 leading-none capitalize">{user?.role || 'Instructor'}</p>
                 </div>
                 <ChevronDown size={14} className="text-zinc-400 hidden sm:block" />
               </button>
