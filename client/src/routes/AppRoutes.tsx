@@ -53,14 +53,6 @@ export const appRoutes = [
         ),
       },
       {
-        path: ROUTES.COURSE_PLAYER,
-        element: (
-          <ProtectedRoute>
-            <CoursePlayerPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
         path: "/profile",
         element: (
           <ProtectedRoute>
@@ -89,6 +81,16 @@ export const appRoutes = [
     ),
   },
 
+  // ── Standalone Course Player (completely distraction-free, no global Header/Footer) ───
+  {
+    path: ROUTES.COURSE_PLAYER,
+    element: (
+      <ProtectedRoute>
+        <CoursePlayerPage />
+      </ProtectedRoute>
+    ),
+  },
+
   // ── Standalone Course Editor Sidebar Workspace ─────────────────────────────
   {
     path: "/instructor/course/:id/manage",
@@ -101,79 +103,31 @@ export const appRoutes = [
 
   // ── Instructor Portal Views (under InstructorLayout with Sidebar) ──────────────
   {
-    element: <InstructorLayout />,
+    element: (
+      <InstructorRoute>
+        <InstructorLayout />
+      </InstructorRoute>
+    ),
     children: [
       {
         path: "/instructor",
-        element: (
-          <InstructorRoute>
-            <Dashboard />
-          </InstructorRoute>
-        ),
+        element: <Dashboard />,
       },
       {
         path: "/instructor/courses",
-        element: (
-          <InstructorRoute>
-            <MyCourses />
-          </InstructorRoute>
-        ),
+        element: <MyCourses />,
       },
       {
         path: "/instructor/students",
-        element: (
-          <InstructorRoute>
-            <Students />
-          </InstructorRoute>
-        ),
+        element: <Students />,
       },
       {
         path: "/instructor/analytics",
-        element: (
-          <InstructorRoute>
-            <Analytics />
-          </InstructorRoute>
-        ),
+        element: <Analytics />,
       },
       {
         path: "/instructor/reviews",
-        element: (
-          <InstructorRoute>
-            <Reviews />
-          </InstructorRoute>
-        ),
-      },
-      {
-        path: "/instructor/assignments",
-        element: (
-          <InstructorRoute>
-            <Assignments />
-          </InstructorRoute>
-        ),
-      },
-      {
-        path: "/instructor/announcements",
-        element: (
-          <InstructorRoute>
-            <Announcements />
-          </InstructorRoute>
-        ),
-      },
-      {
-        path: "/instructor/community",
-        element: (
-          <InstructorRoute>
-            <Community />
-          </InstructorRoute>
-        ),
-      },
-      {
-        path: "/instructor/profile",
-        element: (
-          <InstructorRoute>
-            <Profile />
-          </InstructorRoute>
-        ),
+        element: <Reviews />,
       },
     ],
   },
