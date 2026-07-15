@@ -9,6 +9,7 @@ import {
   Save,
   ArrowLeft,
   GraduationCap,
+  Hexagon,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
@@ -120,13 +121,21 @@ export default function CourseLayout() {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm bg-violet-600 text-white w-6 h-6 rounded-md flex items-center justify-center">
-              K
-            </span>
-            <h1 className="font-bold text-sm tracking-tight hidden sm:block">
-              KVault Course Manager
-            </h1>
+          <div
+            onClick={() => navigate("/instructor/courses")}
+            className="flex items-center gap-2 cursor-pointer group"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-purple to-brand-blue flex items-center justify-center text-white premium-shadow transition-transform group-hover:scale-105">
+              <Hexagon className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-brand-navy to-brand-purple bg-clip-text text-transparent">
+                KVault
+              </span>
+              <span className="text-[9px] text-zinc-500 font-semibold tracking-wider uppercase leading-none">
+                Course Manager
+              </span>
+            </div>
           </div>
         </div>
 
