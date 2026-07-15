@@ -13,7 +13,7 @@ interface Props {
 export function Pricing({ course, setCourse, saving, onSave }: Props) {
   const price = course.price || 0;
   const discountPrice = course.discountPrice;
-  const currency = course.currency || "USD";
+  const currency = "INR";
 
   const handlePriceChange = (value: string) => {
     const val = parseFloat(value) || 0;
@@ -30,12 +30,13 @@ export function Pricing({ course, setCourse, saving, onSave }: Props) {
   };
 
   const currencySymbols: Record<string, string> = {
+    INR: "₹",
     USD: "$",
     EUR: "€",
     GBP: "£",
   };
 
-  const symbol = currencySymbols[currency] || "$";
+  const symbol = currencySymbols[currency] || "₹";
   const finalPrice = discountPrice !== undefined ? discountPrice : price;
 
   return (
@@ -69,13 +70,11 @@ export function Pricing({ course, setCourse, saving, onSave }: Props) {
               </label>
               <div className="relative">
                 <select
-                  value={currency}
-                  onChange={(e) => handleCurrencyChange(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2.5 pr-10 text-sm text-zinc-900 dark:text-white outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 cursor-pointer shadow-sm"
+                  value="INR"
+                  disabled
+                  className="w-full appearance-none rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2.5 pr-10 text-sm text-zinc-900 dark:text-white outline-none cursor-not-allowed shadow-sm opacity-80"
                 >
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="GBP">GBP (£)</option>
+                  <option value="INR">INR (₹)</option>
                 </select>
                 <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-zinc-400">
                   ▼

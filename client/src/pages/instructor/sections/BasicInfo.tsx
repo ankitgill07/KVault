@@ -323,16 +323,11 @@ function BasicInfo({
                   </label>
                   <div className="relative">
                     <select
-                      value={course.currency}
-                      onChange={(e) =>
-                        setCourse({ ...course, currency: e.target.value })
-                      }
-                      className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all text-sm shadow-sm cursor-pointer pr-10"
+                      value="INR"
+                      disabled
+                      className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none cursor-not-allowed text-sm shadow-sm pr-10 opacity-80"
                     >
-                      <option value="">Select currency</option>
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
+                      <option value="INR">INR (₹)</option>
                     </select>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-zinc-400">
                       ▼
