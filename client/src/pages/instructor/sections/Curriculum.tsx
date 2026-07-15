@@ -1,27 +1,17 @@
-import { useState, useRef } from "react";
-import { Card, CardTitle, CardDescription } from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
-import { Badge } from "../../../components/ui/badge";
-import {
-  Plus,
-  Trash2,
-  Video,
-  FileText,
-  HelpCircle,
-  ClipboardList,
-  GripVertical,
-  X,
-  Edit2,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  Upload,
-  Play,
-  Loader2,
+import { useState, useRef, useEffect } from "react";
+import { ConfirmModal } from "../../../components/ConfirmModal";
+import { 
+  Plus, Trash2, Edit2, ChevronDown, ChevronUp, GripVertical, 
+  Video, Eye, FileText, Upload, PlusCircle, Check, Play, Loader2, Link2, HelpCircle, ClipboardList, X, ExternalLink
 } from "lucide-react";
+import { Button } from "../../../components/ui/button";
+import { Card, CardTitle, CardDescription } from "../../../components/ui/card";
 import type { Module } from "../../../api/moduleApi";
 import type { Lesson } from "../../../api/lessonApi";
+import { getMediaUrl } from "../../../utils/mediaUrl";
+import { lessonService } from "../../../services/lessonService";
+import { courseService } from "../../../services/courseService";
+import { Badge } from "../../../components/ui/badge";
 
 interface Props {
   modules: Module[];
@@ -82,8 +72,147 @@ export function Curriculum({
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const videoInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const resourceFileInputRef = useRef<HTMLInputElement>(null);
   const getFormattedDuration = (durationSeconds?: number) =>
     typeof durationSeconds === "number" ? formatDuration(durationSeconds) : "0s";
+
+  const [resources, setResources] = useState<any[]>([]);
+  const [fetchingResources, setFetchingResources] = useState(false);
+  const [uploadingResource, setUploadingResource] = useState(false);
+  const [showAddLink, setShowAddLink] = useState(false);
+  const [resourceLinkTitle, setResourceLinkTitle] = useState("");
+  const [resourceLinkUrl, setResourceLinkUrl] = useState("");
+  const [resourceIdToDelete, setResourceIdToDelete] = useState<string | null>(null);
+  const [moduleIdToDelete, setModuleIdToDelete] = useState<string | null>(null);
+  const [lessonIdToDelete, setLessonIdToDelete] = useState<{ moduleId: string; lessonId: string } | null>(null);
+
+  const handleConfirmDeleteModule = async () => {
+    if (!moduleIdToDelete) return;
+    try {
+      await deleteModule(moduleIdToDelete);
+    } catch (err) {
+      console.error("Error deleting module:", err);
+    } finally {
+      setModuleIdToDelete(null);
+    }
+  };
+
+  const handleConfirmDeleteLesson = async () => {
+    if (!lessonIdToDelete) return;
+    try {
+      await deleteLesson(lessonIdToDelete.moduleId, lessonIdToDelete.lessonId);
+    } catch (err) {
+      console.error("Error deleting lesson:", err);
+    } finally {
+      setLessonIdToDelete(null);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedLesson?._id) {
+      loadResources(selectedLesson._id);
+    } else {
+      setResources([]);
+    }
+  }, [selectedLesson?._id]);
+
+  const loadResources = async (lessonId: string) => {
+    try {
+      setFetchingResources(true);
+      const resData = await lessonService.getLessonResources(lessonId);
+      setResources(resData || []);
+    } catch (err) {
+      console.error("Error loading resources:", err);
+    } finally {
+      setFetchingResources(false);
+    }
+  };
+
+  const handleResourceFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedLesson) return;
+
+    if (file.type.startsWith("video/") || file.name.endsWith(".mp4") || file.name.endsWith(".mkv") || file.name.endsWith(".mov")) {
+      alert("Video files are not allowed as lecture resources.");
+      return;
+    }
+
+    setUploadingResource(true);
+    try {
+      const presignedData = await courseService.getUploadPresignedUrl({
+        type: "resource",
+        fileName: file.name,
+        fileType: file.type,
+      });
+
+      await fetch(presignedData.url, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      const resourceUrl = presignedData.publicUrl;
+      const extension = file.name.split('.').pop()?.toLowerCase() || '';
+      let resourceType = 'document';
+      if (extension === 'pdf') resourceType = 'pdf';
+      else if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(extension)) resourceType = 'image';
+
+      await lessonService.addLessonResource(selectedLesson._id, {
+        title: file.name,
+        type: resourceType,
+        url: resourceUrl,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+      });
+
+      loadResources(selectedLesson._id);
+    } catch (err) {
+      console.error("Error uploading resource:", err);
+      alert("Failed to upload resource file");
+    } finally {
+      setUploadingResource(false);
+      if (resourceFileInputRef.current) resourceFileInputRef.current.value = "";
+    }
+  };
+
+  const handleAddLinkResource = async () => {
+    if (!selectedLesson || !resourceLinkTitle.trim() || !resourceLinkUrl.trim()) return;
+
+    try {
+      await lessonService.addLessonResource(selectedLesson._id, {
+        title: resourceLinkTitle.trim(),
+        type: "link",
+        url: resourceLinkUrl.trim(),
+      });
+      setResourceLinkTitle("");
+      setResourceLinkUrl("");
+      setShowAddLink(false);
+      loadResources(selectedLesson._id);
+    } catch (err) {
+      console.error("Error adding link resource:", err);
+      alert("Failed to add link resource");
+    }
+  };
+
+  const handleDeleteResource = (resourceId: string) => {
+    setResourceIdToDelete(resourceId);
+  };
+
+  const handleConfirmDeleteResource = async () => {
+    if (!selectedLesson || !resourceIdToDelete) return;
+    try {
+      await lessonService.deleteLessonResource(selectedLesson._id, resourceIdToDelete);
+      loadResources(selectedLesson._id);
+    } catch (err) {
+      console.error("Error deleting resource:", err);
+      alert("Failed to delete resource");
+    } finally {
+      setResourceIdToDelete(null);
+    }
+  };
 
   const toggleModule = (id: string) => {
     setExpandedModules((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -188,7 +317,7 @@ export function Curriculum({
                         <Plus className="w-3.5 h-3.5 mr-1" /> Add Lesson
                       </Button>
                       <button
-                        onClick={() => deleteModule(module._id)}
+                        onClick={() => setModuleIdToDelete(module._id)}
                         className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -237,7 +366,7 @@ export function Curriculum({
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  deleteLesson(module._id, lesson._id);
+                                  setLessonIdToDelete({ moduleId: module._id, lessonId: lesson._id });
                                 }}
                                 className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition"
                               >
@@ -296,8 +425,9 @@ export function Curriculum({
                   <div className="p-3.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 rounded-xl space-y-2">
                     <div className="w-full rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-inner bg-black">
                       <video
-                        src={selectedLesson.videoUrl}
+                        src={getMediaUrl(selectedLesson.videoUrl)}
                         controls
+                        crossOrigin="use-credentials"
                         className="w-full max-h-40 object-contain"
                       />
                     </div>
@@ -395,6 +525,109 @@ export function Curriculum({
                   />
                 </label>
               </div>
+
+              {/* Lecture Resources Section */}
+              <div className="space-y-3 border-t border-zinc-100 dark:border-zinc-800/80 pt-3">
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400 block">Lecture Resources</label>
+                
+                {/* Resources List */}
+                {fetchingResources ? (
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Loading resources...</span>
+                  </div>
+                ) : resources.length > 0 ? (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {resources.map((res: any) => (
+                      <div key={res._id} className="flex items-center justify-between p-2 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-xs border border-zinc-100 dark:border-zinc-800">
+                        <div className="flex items-center gap-2 truncate">
+                          {res.type === 'link' ? (
+                            <Link2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          ) : res.type === 'pdf' ? (
+                            <FileText className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                          ) : res.type === 'image' ? (
+                            <FileText className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                          ) : (
+                            <FileText className="w-3.5 h-3.5 text-yellow-500 shrink-0" />
+                          )}
+                          <span className="font-medium text-zinc-800 dark:text-zinc-200 truncate" title={res.title}>
+                            {res.title}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteResource(res._id)}
+                          className="text-zinc-400 hover:text-red-500 p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-850"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-zinc-400 italic">No resources added yet.</p>
+                )}
+
+                {/* Add Resource Buttons */}
+                <div className="space-y-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      type="button"
+                      onClick={() => resourceFileInputRef.current?.click()}
+                      disabled={uploadingResource}
+                      className="text-[10px] h-8 rounded-lg"
+                    >
+                      {uploadingResource ? "Uploading..." : "Upload File"}
+                    </Button>
+                    <input
+                      type="file"
+                      ref={resourceFileInputRef}
+                      onChange={handleResourceFileUpload}
+                      accept=".pdf,.png,.jpg,.jpeg,.txt,.md"
+                      className="hidden"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      type="button"
+                      onClick={() => setShowAddLink(!showAddLink)}
+                      className="text-[10px] h-8 rounded-lg"
+                    >
+                      {showAddLink ? "Cancel Link" : "Add Link"}
+                    </Button>
+                  </div>
+
+                  {showAddLink && (
+                    <div className="p-2 border border-zinc-100 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-950/50 space-y-2">
+                      <input
+                        type="text"
+                        placeholder="Link Title"
+                        value={resourceLinkTitle}
+                        onChange={(e) => setResourceLinkTitle(e.target.value)}
+                        className="w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 py-1 text-xs text-zinc-900 dark:text-white outline-none"
+                      />
+                      <input
+                        type="url"
+                        placeholder="URL (https://...)"
+                        value={resourceLinkUrl}
+                        onChange={(e) => setResourceLinkUrl(e.target.value)}
+                        className="w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 py-1 text-xs text-zinc-900 dark:text-white outline-none"
+                      />
+                      <Button
+                        size="sm"
+                        type="button"
+                        onClick={handleAddLinkResource}
+                        disabled={!resourceLinkTitle.trim() || !resourceLinkUrl.trim()}
+                        className="w-full text-[10px] h-7 bg-violet-600 hover:bg-violet-750 text-white rounded-md"
+                      >
+                        Save Link
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </Card>
           ) : (
             <Card className="p-6 text-center border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/10 rounded-xl py-12">
@@ -403,6 +636,30 @@ export function Curriculum({
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={resourceIdToDelete !== null}
+        title="Delete Resource"
+        message="Are you sure you want to delete this resource? This action cannot be undone."
+        onConfirm={handleConfirmDeleteResource}
+        onCancel={() => setResourceIdToDelete(null)}
+      />
+
+      <ConfirmModal
+        isOpen={moduleIdToDelete !== null}
+        title="Delete Module"
+        message="Are you sure you want to delete this module and all its lessons? This action cannot be undone."
+        onConfirm={handleConfirmDeleteModule}
+        onCancel={() => setModuleIdToDelete(null)}
+      />
+
+      <ConfirmModal
+        isOpen={lessonIdToDelete !== null}
+        title="Delete Lesson"
+        message="Are you sure you want to delete this lesson? This action cannot be undone."
+        onConfirm={handleConfirmDeleteLesson}
+        onCancel={() => setLessonIdToDelete(null)}
+      />
     </div>
   );
 }

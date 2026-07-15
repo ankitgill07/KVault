@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ConfirmModal } from "../../components/ConfirmModal";
 import { useNavigate } from "react-router-dom";
 import { courseService } from "../../services/courseService";
 import { Card } from "../../components/ui/card";
@@ -50,16 +51,19 @@ export default function MyCourses() {
     [courses, search],
   );
 
-  const handleDelete = async (id: string) => {
-    if (
-      !confirm("Delete this course and all its content? This cannot be undone.")
-    )
-      return;
+  const handleDelete = (id: string) => {
+    setDeleteTarget(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await courseService.deleteCourse(id);
-      setCourses((prev) => prev.filter((c) => c._id !== id));
+      await courseService.deleteCourse(deleteTarget);
+      setCourses((prev) => prev.filter((c) => c._id !== deleteTarget));
     } catch (err) {
       console.error("Delete error:", err);
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -335,6 +339,14 @@ export default function MyCourses() {
           </div>
         </Card>
       )}
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        title="Delete Course"
+        message="Are you sure you want to delete this course and all its content? This action cannot be undone."
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
