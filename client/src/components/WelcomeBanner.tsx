@@ -34,7 +34,7 @@ const getGreeting = (): string => {
 };
 
 export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
-  userName = "User",
+  userName,
   status = "no-purchases",
   streakDays = 0,
   coursesInProgress = 0,
@@ -42,8 +42,10 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
   onBrowseCourses,
 }) => {
   const { theme } = useTheme();
+
   const isDark = theme === "dark";
-  const firstName = userName.split(" ")[0];
+  const displayName = userName  || "Student";
+  const firstName = displayName.split(" ")[0];
 
   // ---- New account: celebratory, onboarding-flavored ----
   if (status === "new") {
