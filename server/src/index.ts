@@ -70,7 +70,7 @@ app.use(`/${API_VERSION}/wishlist`, authenticate, wishlistRouter);
 
 
 app.use(`/${API_VERSION}/courses`, courseRouter);
-app.use(`/${API_VERSION}/review`, reviewRouter);
+app.use(`/${API_VERSION}/reviews`, reviewRouter);
 app.use(`/${API_VERSION}/categories`, categoryRouter);
 app.use(`/${API_VERSION}/lessons`, lessonRouter);
 app.use(`/${API_VERSION}/enrollments`, authenticate, enrollmentRouter);
