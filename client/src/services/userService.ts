@@ -33,6 +33,7 @@ export interface UserProfile {
 }
 
 export interface UpdateProfileData {
+  name?: string;
   profileName?: string;
   bio?: string;
   twitterUrl?: string;

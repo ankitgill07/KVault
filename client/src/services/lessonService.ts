@@ -72,4 +72,44 @@ export const lessonService = {
       throw error;
     }
   },
+
+  getLessonResources: async (lessonId: string) => {
+    try {
+      const response = await lessonApi.getLessonResources(lessonId);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching lesson resources:", error);
+      throw error;
+    }
+  },
+
+  addLessonResource: async (lessonId: string, data: any) => {
+    try {
+      const response = await lessonApi.addLessonResource(lessonId, data);
+      return response.data;
+    } catch (error) {
+      console.error("Error adding resource:", error);
+      throw error;
+    }
+  },
+
+  deleteLessonResource: async (lessonId: string, resourceId: string) => {
+    try {
+      const response = await lessonApi.deleteLessonResource(lessonId, resourceId);
+      return response;
+    } catch (error) {
+      console.error("Error deleting resource:", error);
+      throw error;
+    }
+  },
+
+  downloadLessonResource: async (lessonId: string, resourceId: string) => {
+    try {
+      const response = await lessonApi.downloadLessonResource(lessonId, resourceId);
+      return response.data;
+    } catch (error) {
+      console.error("Error downloading resource:", error);
+      throw error;
+    }
+  },
 };

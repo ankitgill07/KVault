@@ -60,6 +60,16 @@ export const courseService = {
     }
   },
 
+  getInstructorStudents: async () => {
+    try {
+      const response = await courseApi.getInstructorStudents();
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching instructor students:", error);
+      throw error;
+    }
+  },
+
   /**
    * Get course by ID
    */
@@ -129,7 +139,7 @@ export const courseService = {
    * Get presigned URL for direct upload to R2
    */
   getUploadPresignedUrl: async (data: {
-    type: 'thumbnail' | 'video';
+    type: "thumbnail" | "video" | "resource";
     fileName: string;
     fileType: string;
   }) => {
