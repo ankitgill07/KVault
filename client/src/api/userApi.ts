@@ -12,6 +12,7 @@ export const userApi = {
 
   // Update user profile
   updateProfile: async (data: {
+    name?: string;
     profileName?: string;
     bio?: string;
     twitterUrl?: string;

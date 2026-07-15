@@ -74,7 +74,7 @@ export const reviewApi = {
     page: number = 1,
     limit: number = 10,
   ): Promise<ReviewsListResponse> => {
-    const response = await axiosInstance.get(`/${courseId}/reviews`, {
+    const response = await axiosInstance.get(`/reviews/course/${courseId}`, {
       params: { page, limit },
     });
     return response.data;

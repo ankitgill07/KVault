@@ -66,6 +66,7 @@ export interface CoursesListResponse {
 export interface CreateCourseData {
   title: string;
   slug?: string;
+  subtitle?: string;
   description: string;
   shortDescription?: string;
   thumbnailUrl?: string;
@@ -87,6 +88,7 @@ export interface CreateCourseData {
 export interface UpdateCourseData {
   title?: string;
   slug?: string;
+  subtitle?: string;
   description?: string;
   shortDescription?: string;
   thumbnailUrl?: string;
@@ -213,7 +215,7 @@ export const courseApi = {
    * Get upload presigned URL
    */
   getUploadPresignedUrl: async (data: {
-    type: "thumbnail" | "video";
+    type: "thumbnail" | "video" | "resource";
     fileName: string;
     fileType: string;
   }): Promise<any> => {
@@ -229,6 +231,11 @@ export const courseApi = {
     id: string,
   ): Promise<{ success: boolean; message: string }> => {
     const response = await axiosInstance.delete(`/courses/${id}`);
+    return response.data;
+  },
+
+  getInstructorStudents: async (): Promise<any> => {
+    const response = await axiosInstance.get("/courses/instructor/students");
     return response.data;
   },
 };

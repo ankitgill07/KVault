@@ -147,4 +147,24 @@ export const lessonApi = {
     const response = await axiosInstance.delete(`/lessons/${id}`);
     return response.data;
   },
+
+  getLessonResources: async (lessonId: string): Promise<any> => {
+    const response = await axiosInstance.get(`/lessons/${lessonId}/resources`);
+    return response.data;
+  },
+
+  addLessonResource: async (lessonId: string, data: any): Promise<any> => {
+    const response = await axiosInstance.post(`/lessons/${lessonId}/resources`, data);
+    return response.data;
+  },
+
+  deleteLessonResource: async (lessonId: string, resourceId: string): Promise<any> => {
+    const response = await axiosInstance.delete(`/lessons/${lessonId}/resources/${resourceId}`);
+    return response.data;
+  },
+
+  downloadLessonResource: async (lessonId: string, resourceId: string): Promise<any> => {
+    const response = await axiosInstance.get(`/lessons/${lessonId}/resources/${resourceId}/download`);
+    return response.data;
+  },
 };
