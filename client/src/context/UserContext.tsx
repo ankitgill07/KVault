@@ -52,7 +52,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             id: userData.id,
             name: userData.name,
             email: userData.email,
-            role: userData.role
+            role: userData.role,
+            avatar: userData.avatar,
+            profileName: userData.profileName,
           });
           setIsSignedIn(true);
         } else {
@@ -86,7 +88,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: userData.id,
         name: userData.name,
         email: userData.email,
-        role: userData.role
+        role: userData.role,
+        avatar: userData.avatar,
+        profileName: userData.profileName,
       });
       setIsSignedIn(true);
       setLoading(false);
@@ -106,7 +110,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: userData.id,
         name: userData.name,
         email: userData.email,
-        role: userData.role
+        role: userData.role,
+        avatar: userData.avatar,
+        profileName: userData.profileName,
       });
       setIsSignedIn(true);
       setLoading(false);
