@@ -15,6 +15,7 @@ import {
 } from "../../store/progressSlice";
 import { Certificates } from "./Certificates";
 import { ContinueLearning, type CourseProgressInfo } from "./ContinueLearning";
+import { jsPDF } from "jspdf";
 
 
 export const MyLearning = () => {
@@ -140,32 +141,81 @@ export const MyLearning = () => {
         const certId =
           "certificateId" in result ? result.certificateId || "N/A" : "N/A";
 
-        const certificateText = `
-CERTIFICATE OF COMPLETION
+        // Generate beautiful landscape PDF certificate using jsPDF
+        const doc = new jsPDF({
+          orientation: "landscape",
+          unit: "mm",
+          format: "a4",
+        });
 
-This is to certify that
+        // A4 dimension: 297mm x 210mm
+        // Draw deep navy frame border
+        doc.setDrawColor(24, 24, 37);
+        doc.setLineWidth(1.5);
+        doc.rect(10, 10, 277, 190);
 
-${studentName}
+        // Draw accent violet inner frame border
+        doc.setDrawColor(124, 58, 237);
+        doc.setLineWidth(0.5);
+        doc.rect(12, 12, 273, 186);
 
-has successfully completed the course
+        // Title header
+        doc.setTextColor(24, 24, 37);
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(28);
+        doc.text("CERTIFICATE OF COMPLETION", 148.5, 45, { align: "center" });
 
-"${courseName}"
+        doc.setFont("Helvetica", "normal");
+        doc.setFontSize(14);
+        doc.setTextColor(100, 116, 139);
+        doc.text("This is proudly presented to", 148.5, 65, { align: "center" });
 
-Completed on: ${completedDate}
-Certificate ID: ${certId}
+        // Student name
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(24);
+        doc.setTextColor(124, 58, 237);
+        doc.text(studentName, 148.5, 80, { align: "center" });
 
-Issued by KVault LMS Academy
-        `;
+        doc.setFont("Helvetica", "normal");
+        doc.setFontSize(14);
+        doc.setTextColor(100, 116, 139);
+        doc.text("for successfully completing the online specialization course", 148.5, 95, { align: "center" });
 
-        const blob = new Blob([certificateText], { type: "text/plain" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `certificate-${courseTitle.replace(/\s+/g, "-").toLowerCase()}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        // Course title
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(20);
+        doc.setTextColor(24, 24, 37);
+        doc.text(`"${courseName}"`, 148.5, 110, { align: "center" });
+
+        // Platform metadata
+        doc.setFont("Helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Completion Date: ${completedDate}`, 40, 145);
+        doc.text(`Certificate ID: ${certId}`, 40, 153);
+        doc.text("KVault LMS Academy Verification Link: https://kvault.com/verify", 40, 161);
+
+        // Instructor signature lines
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(24, 24, 37);
+        
+        const instName = "course" in result && (result.course as any)?.primaryInstructor?.name
+          ? (result.course as any).primaryInstructor.name
+          : "Course Instructor";
+          
+        doc.text(instName, 220, 145, { align: "center" });
+        doc.setDrawColor(148, 163, 184);
+        doc.setLineWidth(0.5);
+        doc.line(190, 148, 250, 148);
+        
+        doc.setFont("Helvetica", "italic");
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139);
+        doc.text("Authorized Instructor Signature", 220, 153, { align: "center" });
+
+        // Download directly to PDF
+        doc.save(`certificate-${courseTitle.replace(/\s+/g, "-").toLowerCase()}.pdf`);
 
         alert(`Certificate downloaded successfully for "${courseTitle}"`);
       } else if (result && "alreadyIssued" in result) {
