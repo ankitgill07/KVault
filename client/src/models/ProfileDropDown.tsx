@@ -5,7 +5,7 @@ import { useUser } from "../context/UserContext";
 
 function ProfileDropDown() {
   const navigate = useNavigate();
-  const { logout } = useUser();
+  const { logout, user } = useUser();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -23,6 +23,14 @@ function ProfileDropDown() {
   return (
     <div>
       <div className="absolute top-full right-0 mt-2 w-48 bg-bg-card rounded-2xl border border-brand-border premium-shadow py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+        {user?.role === "instructor" && (
+          <Link
+            to="/instructor"
+            className="w-full text-left px-4 py-4 text-xs font-bold text-violet-600 hover:bg-bg-secondary transition-colors cursor-pointer block border-b border-brand-border/60"
+          >
+            Instructor Dashboard
+          </Link>
+        )}
         <Link
           to="/profile"
           className="w-full text-left px-4 py-4 text-xs font-bold text-brand-navy hover:bg-bg-secondary transition-colors cursor-pointer block"
