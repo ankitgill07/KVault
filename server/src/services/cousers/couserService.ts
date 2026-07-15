@@ -358,7 +358,7 @@ export const uploadCourseThumbnail = async (
 };
 
 export const generateUploadPresignedUrl = async (
-  type: 'thumbnail' | 'video',
+  type: 'thumbnail' | 'video' | 'resource',
   fileName: string,
   fileType: string,
   instructorId: string,
