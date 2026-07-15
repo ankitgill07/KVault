@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 import Course from "../../models/courseModel.js";
 import Enrollment from "../../models/enrollmentModel.js";
@@ -146,12 +145,17 @@ export const updateEnrollmentProgress = async (
     }
     enrollment.completedModules = completedModulesList as any;
 
-    // Recalculate overall course progress
-    const totalLessons = await mongoose.model("Lesson").countDocuments({ course: courseId });
+    // Recalculate overall course progress based on published lessons
+    const totalLessons = await mongoose.model("Lesson").countDocuments({ course: courseId, isPublished: true });
     if (totalLessons > 0) {
+      const completedPublishedCount = await mongoose.model("Lesson").countDocuments({
+        _id: { $in: enrollment.completedLessons },
+        course: courseId,
+        isPublished: true
+      });
       enrollment.progress = Math.min(
         100,
-        Math.round((enrollment.completedLessons.length / totalLessons) * 100)
+        Math.round((completedPublishedCount / totalLessons) * 100)
       );
     } else {
       enrollment.progress = 0;
@@ -239,14 +243,41 @@ export const generateCertificate = async (
     const enrollment = await Enrollment.findOne({
       student: studentId,
       course: courseId,
-    }).populate("course", "title thumbnailUrl").populate("student", "name email");
+    })
+      .populate({
+        path: "course",
+        select: "title thumbnailUrl primaryInstructor",
+        populate: {
+          path: "primaryInstructor",
+          select: "name",
+        },
+      })
+      .populate("student", "name email");
 
     if (!enrollment) {
       throw new Error("Enrollment not found");
     }
 
-    if (!enrollment.isCompleted) {
+    // Recalculate progress using published lessons to handle drafts
+    const totalPublishedLessons = await mongoose.model("Lesson").countDocuments({ course: courseId, isPublished: true });
+    const completedPublishedCount = await mongoose.model("Lesson").countDocuments({
+      _id: { $in: enrollment.completedLessons },
+      course: courseId,
+      isPublished: true
+    });
+
+    const hasCompletedAll = totalPublishedLessons === 0 || completedPublishedCount >= totalPublishedLessons;
+
+    if (!enrollment.isCompleted && !hasCompletedAll && (enrollment.progress || 0) < 100) {
       throw new Error("Course not completed yet");
+    }
+
+    if (!enrollment.isCompleted) {
+      enrollment.isCompleted = true;
+      enrollment.completedAt = enrollment.completedAt || new Date();
+      enrollment.progress = 100;
+      enrollment.status = "completed" as any;
+      await enrollment.save();
     }
 
     if (enrollment.certificateIssued) {
