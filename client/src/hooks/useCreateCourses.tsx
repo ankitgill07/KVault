@@ -148,7 +148,7 @@ export default function useCreateCourses() {
     thumbnailKey: "",
     price: 0,
     discountPrice: undefined,
-    currency: "USD",
+    currency: "INR",
     isPublished: false,
     requirements: [],
     learningOutcomes: [],
@@ -245,7 +245,7 @@ export default function useCreateCourses() {
           thumbnailKey: courseData.thumbnailKey || "",
           price: courseData.price || 0,
           discountPrice: courseData.discountPrice,
-          currency: courseData.currency || "USD",
+          currency: courseData.currency || "INR",
           isPublished: courseData.isPublished || false,
           requirements: courseData.requirements || [],
           learningOutcomes: courseData.learningOutcomes || [],
@@ -330,6 +330,7 @@ export default function useCreateCourses() {
       const createData: CreateCourseData = {
         title: course.title || "Untitled Course",
         slug: course.slug || generateSlug(course.title || "untitled-course"),
+        subtitle: course.subtitle,
         description: course.description || "",
         shortDescription: course.shortDescription,
         thumbnailUrl: course.thumbnailUrl || "",
@@ -381,6 +382,7 @@ export default function useCreateCourses() {
         const updateData: UpdateCourseData = {
           title: course.title,
           slug: course.slug || undefined,
+          subtitle: course.subtitle || undefined,
           description: course.description,
           shortDescription: course.shortDescription,
           thumbnailUrl: course.thumbnailUrl || undefined,
@@ -511,8 +513,6 @@ export default function useCreateCourses() {
   };
 
   const deleteModule = async (moduleId: string) => {
-    if (!confirm("Delete this module and all its lessons?")) return;
-
     setModules(modules.filter((module) => module._id !== moduleId));
 
     try {
@@ -571,8 +571,6 @@ export default function useCreateCourses() {
   };
 
   const deleteLesson = async (moduleId: string, lessonId: string) => {
-    if (!confirm("Delete this lesson?")) return;
-
     setModules(
       modules.map((module) =>
         module._id === moduleId
@@ -621,6 +619,7 @@ export default function useCreateCourses() {
           contentType: lesson.contentType || lesson.lesson_type || "video",
           isPreview: lesson.isPreview || lesson.is_free_preview || false,
           isFree: lesson.isFree || lesson.is_free_preview || false,
+          isPublished: lesson.isPublished || false,
           textContent: lesson.textContent || lesson.content_text || undefined,
           markdownContent:
             lesson.markdownContent || lesson.content_text || undefined,
