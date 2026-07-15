@@ -113,6 +113,7 @@ export default function Dashboard() {
       id: `${s._id}-${c.courseId}`,
       studentName: s.name,
       courseTitle: c.title,
+      progress: c.progress || 0,
       enrolledAt: c.enrolledAt,
       date: new Date(c.enrolledAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
     }))
@@ -291,6 +292,15 @@ export default function Dashboard() {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-xs text-zinc-800 dark:text-zinc-200 truncate">{enr.studentName}</h4>
                     <p className="text-[10px] text-zinc-400 mt-0.5 truncate">Enrolled in: {enr.courseTitle}</p>
+                    <div className="flex items-center gap-2 mt-1 max-w-[150px]">
+                      <div className="flex-1 h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-violet-600 rounded-full" 
+                          style={{ width: `${enr.progress}%` }} 
+                        />
+                      </div>
+                      <span className="text-[9px] font-bold text-zinc-500">{enr.progress}%</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-medium">
                     <Clock className="w-3 h-3" />
