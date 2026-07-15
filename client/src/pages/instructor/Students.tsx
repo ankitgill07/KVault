@@ -56,10 +56,35 @@ export default function Students() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await courseService.getMyCourses();
-        if (data) {
-          setCourses(data);
-          setStudents(generateStudents(data));
+        const [myCourses, realStudents] = await Promise.all([
+          courseService.getMyCourses(),
+          courseService.getInstructorStudents()
+        ]);
+        
+        if (myCourses) {
+          setCourses(myCourses);
+        }
+        
+        if (realStudents) {
+          const flatStudents = realStudents.flatMap((student: any) =>
+            student.courses.map((enrollment: any) => ({
+              id: `${student._id}-${enrollment.courseId}`,
+              name: student.name,
+              email: student.email,
+              avatar: student.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(student.name)}`,
+              course: enrollment.title,
+              courseId: enrollment.courseId,
+              progress: enrollment.progress || 0,
+              enrolledAt: enrollment.enrolledAt,
+              lastActive: enrollment.enrolledAt,
+              status: enrollment.progress === 100 
+                ? 'Completed' 
+                : enrollment.progress === 0 
+                  ? 'Not Started' 
+                  : 'In Progress'
+            }))
+          );
+          setStudents(flatStudents);
         }
       } catch (err) {
         console.error('Students fetch error:', err);
