@@ -203,8 +203,8 @@ export const getUploadPresignedUrl = async (req: AuthenticatedRequest, res: Resp
       return;
     }
 
-    if (!['thumbnail', 'video'].includes(type)) {
-      sendError(res, "Invalid type. Must be 'thumbnail' or 'video'", 400);
+    if (!['thumbnail', 'video', 'resource'].includes(type)) {
+      sendError(res, "Invalid type. Must be 'thumbnail', 'video', or 'resource'", 400);
       return;
     }
 
@@ -292,5 +292,72 @@ export const abortMultipartUpload = async (req: AuthenticatedRequest, res: Respo
   } catch (error: any) {
     console.error("[abortMultipartUpload]", error);
     sendError(res, error.message || "Failed to abort multipart upload", 500);
+  }
+};
+
+const toIdString = (value: unknown): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && "_id" in (value as any)) {
+    return String((value as any)._id);
+  }
+  return String(value);
+};
+
+export const getInstructorStudents = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      sendError(res, "Unauthorized", 401);
+      return;
+    }
+
+    // 1. Get all courses where primaryInstructor matches the user
+    const courses = await Course.find({ primaryInstructor: userId });
+    const courseIds = courses.map((c) => c._id);
+
+    // 2. Fetch all enrollments for these courses
+    const Enrollment = (await import("../models/enrollmentModel.js")).default;
+    const enrollments = await Enrollment.find({ course: { $in: courseIds } })
+      .populate("student", "name email avatar")
+      .populate("course", "title price level");
+
+    // 3. Format the data to return
+    const studentsMap = new Map();
+    for (const entry of enrollments) {
+      if (!entry.student) continue;
+      
+      const student = entry.student as any;
+      const course = entry.course as any;
+      
+      const studentId = student._id.toString();
+      const courseInfo = {
+        courseId: course?._id,
+        title: course?.title || "Untitled Course",
+        price: course?.price || 0,
+        enrolledAt: entry.createdAt || entry.updatedAt,
+        progress: entry.progress || 0,
+        status: entry.status || "active",
+      };
+
+      if (studentsMap.has(studentId)) {
+        const studentRecord = studentsMap.get(studentId);
+        studentRecord.courses.push(courseInfo);
+      } else {
+        studentsMap.set(studentId, {
+          _id: studentId,
+          name: student.name,
+          email: student.email,
+          avatar: student.avatar || null,
+          courses: [courseInfo],
+        });
+      }
+    }
+
+    const students = Array.from(studentsMap.values());
+    sendSuccess(res, "Instructor students fetched successfully", students);
+  } catch (error: any) {
+    console.error("[getInstructorStudents]", error);
+    sendError(res, error.message || "Failed to fetch instructor students", 500);
   }
 };
