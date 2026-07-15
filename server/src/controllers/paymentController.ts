@@ -131,14 +131,16 @@ export const createOrder = async (
       },
     });
 
-    // Create Order documents for each course
-    for (const courseId of courseIds) {
+    // Create Order documents for each course using the specific priceAtAdd snapshot
+    for (const item of cart.items) {
+      const courseId = (item.course as any)._id?.toString() || item.course.toString();
       const courseDoc = await Course.findById(courseId).populate('primaryInstructor');
+      const itemPrice = item.priceAtAdd || 0;
       await Order.create({
         student: userId,
         course: courseId,
         instructor: (courseDoc?.primaryInstructor as any)?._id || courseDoc?.primaryInstructor,
-        amount: amountInPaise / courseIds.length,
+        amount: itemPrice,
         status: 'created',
         razorpayOrderId: order.orderId,
       });
@@ -226,11 +228,15 @@ export const verifyPayment = async (
 
       if (!existingEnrollment) {
         // Create enrollment with payment details
+        const discountOrPrice = (course.discountPrice !== undefined && course.discountPrice !== null)
+          ? course.discountPrice
+          : (course.price || item.priceAtAdd || 0);
+
         await Enrollment.create({
           student: userId,
           course: courseId,
           progress: 0,
-          amountPaid: course.price || item.priceAtAdd || 0,
+          amountPaid: discountOrPrice,
           paymentMethod: "razorpay",
           transactionId: razorpay_payment_id,
           status: EnrollmentStatus.ACTIVE,
