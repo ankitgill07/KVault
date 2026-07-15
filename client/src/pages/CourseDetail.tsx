@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { courseService } from "../services/courseService";
+import { ReviewSection } from "../components/ReviewSection";
 import { moduleService } from "../services/moduleService";
 import { lessonService } from "../services/lessonService";
 import type { Course } from "../api/courseApi";
@@ -304,6 +305,12 @@ export const CourseDetail = () => {
             {course.title}
           </h1>
 
+          {course.subtitle && (
+            <p className="text-sm sm:text-base text-white/90 font-medium max-w-2xl">
+              {course.subtitle}
+            </p>
+          )}
+
           <p className="text-sm sm:text-base text-white/80 line-clamp-3 font-medium leading-relaxed max-w-2xl">
             {course.description}
           </p>
@@ -350,7 +357,7 @@ export const CourseDetail = () => {
                   className="flex-1 min-w-[120px] py-3 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-blue text-white text-xs font-extrabold hover:opacity-95 cursor-pointer text-center"
                 >
                   Buy Now
-                </button>
+                </button>     
                 <button
                   onClick={handleCartClick}
                   className={`p-3 rounded-2xl border transition-colors cursor-pointer ${
@@ -456,8 +463,6 @@ export const CourseDetail = () => {
               )}
             </section>
           )}
-
-          {/* What You'll Learn Section */}
           {course.learningOutcomes && course.learningOutcomes.length > 0 && (
             <section className="space-y-4">
               <h3 className="text-xl font-extrabold text-brand-navy">
@@ -625,6 +630,11 @@ export const CourseDetail = () => {
                 </p>
               </div>
             </div>
+          </section>
+
+          {/* Reviews Section */}
+          <section className="space-y-4 pt-6 border-t border-brand-border/60">
+            <ReviewSection courseId={course._id} isEnrolled={isEnrolled} />
           </section>
         </div>
 
