@@ -53,7 +53,10 @@ const UserSchema = new Schema<IUser>(
     },
     phoneNumber: {
       type: String,
-      default: null,
+      default: function () {
+        const encodedName = encodeURIComponent(this.name || "User");
+        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodedName}`;
+      },
     },
 
     // ── Social Links ────────────────────────────────
@@ -61,34 +64,34 @@ const UserSchema = new Schema<IUser>(
       type: String,
       default: null,
       validate: {
-        validator: function(v: string | null) {
+        validator: function (v: string | null) {
           if (!v) return true;
           return /^https?:\/\/(www\.)?(twitter|x)\.com\/.+$/.test(v);
         },
-        message: 'Please provide a valid Twitter/X URL'
-      }
+        message: "Please provide a valid Twitter/X URL",
+      },
     },
     linkedinUrl: {
       type: String,
       default: null,
       validate: {
-        validator: function(v: string | null) {
+        validator: function (v: string | null) {
           if (!v) return true;
           return /^https?:\/\/(www\.)?linkedin\.com\/.+$/.test(v);
         },
-        message: 'Please provide a valid LinkedIn URL'
-      }
+        message: "Please provide a valid LinkedIn URL",
+      },
     },
     websiteUrl: {
       type: String,
       default: null,
       validate: {
-        validator: function(v: string | null) {
+        validator: function (v: string | null) {
           if (!v) return true;
           return /^https?:\/\/.+/.test(v);
         },
-        message: 'Please provide a valid website URL'
-      }
+        message: "Please provide a valid website URL",
+      },
     },
 
     // ── Role & Status ───────────────────────────────

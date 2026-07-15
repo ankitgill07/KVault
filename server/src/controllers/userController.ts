@@ -23,6 +23,7 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
   try {
     const userId = req.user?.id;
     const {
+      name,
       profileName,
       bio,
       twitterUrl,
@@ -37,6 +38,7 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
     }
 
     // Update fields if provided
+    if (name !== undefined) user.name = name;
     if (profileName !== undefined) user.profileName = profileName;
     if (bio !== undefined) user.bio = bio;
     if (twitterUrl !== undefined) user.twitterUrl = twitterUrl;
