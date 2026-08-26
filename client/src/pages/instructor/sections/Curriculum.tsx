@@ -427,7 +427,6 @@ export function Curriculum({
                       <video
                         src={getMediaUrl(selectedLesson.videoUrl)}
                         controls
-                        crossOrigin="use-credentials"
                         className="w-full max-h-40 object-contain"
                       />
                     </div>

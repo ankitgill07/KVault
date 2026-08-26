@@ -231,7 +231,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               poster={poster}
               autoPlay
               playsInline
-              crossOrigin="use-credentials"
             />
           </VideoSkin>
           <PlaybackTracker
