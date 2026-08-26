@@ -1,0 +1,10 @@
+{
+  "rawPath": "/",
+  "requestContext": {
+    "http": {
+      "method": "GET",
+      "path": "/"
+    }
+  },
+  "headers": {}
+}

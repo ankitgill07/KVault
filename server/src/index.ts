@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import connectDB from "./db/mongodb.js";
 import authRouter from "./routers/authRouter.js";
 import userRouter from "./routers/userRouter.js";
 import courseRouter from "./routers/courseRouter.js";
@@ -24,7 +23,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+// const PORT = 3000;
 
 app.use(express.json());
 
@@ -39,7 +38,12 @@ app.use((req, _res, next) => {
   next();
 });
 
-const allowedOrigins = [process.env.FRONTEND_URL, process.env.FRONTEND_URL_2];
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL_2,
+  "https://kvault.online",
+  "https://www.kvault.online"
+].filter(Boolean);
 
 app.use(
   cors({
@@ -50,7 +54,8 @@ app.use(
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        // Return null, false to block CORS without throwing a 500 error on the server
+        callback(null, false);
       }
     },
     credentials: true,
@@ -59,7 +64,7 @@ app.use(
 // Serve static files from uploads directory
 app.use("/uploads", express.static("uploads"));
 
-await connectDB();
+
 const API_VERSION = process.env.API_VERSION || "api/v1";
 
 app.use(`/${API_VERSION}/auth`, authRouter);
@@ -82,6 +87,9 @@ app.get("/", (req, res) => {
   res.send("Hello from Express + TypeScript!");
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server running at http://localhost:${PORT}`);
+// });
+
+
+export default app

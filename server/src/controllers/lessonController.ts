@@ -6,6 +6,7 @@ import Lesson from "../models/lessonModel.js";
 import Course from "../models/courseModel.js";
 import Enrollment from "../models/enrollmentModel.js";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { r2 } from "../db/r2.js";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -383,65 +384,18 @@ export const getLessonStream = async (
       }
     }
 
-    // ── 3. Build R2 GetObjectCommand ─────────────────────────
-    const rangeHeader = req.headers.range;
-    const commandInput: any = {
+    // ── 3. Generate secure R2 pre-signed URL ────────────────
+    const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key: lesson.videoKey,
-    };
-
-    if (rangeHeader) {
-      commandInput.Range = rangeHeader;
-    }
-
-    const command = new GetObjectCommand(commandInput);
-    const r2Response = await r2.send(command);
-
-    if (!r2Response.Body) {
-      res.status(500).send("Failed to retrieve video from storage");
-      return;
-    }
-
-    // ── 4. Forward headers & status code ─────────────────────
-    const statusCode = rangeHeader && r2Response.ContentRange ? 206 : 200;
-
-    const headers: Record<string, string> = {
-      "Accept-Ranges": "bytes",
-    };
-
-    if (r2Response.ContentType) {
-      headers["Content-Type"] = r2Response.ContentType;
-    }
-    if (r2Response.ContentLength !== undefined) {
-      headers["Content-Length"] = String(r2Response.ContentLength);
-    }
-    if (r2Response.ContentRange) {
-      headers["Content-Range"] = r2Response.ContentRange;
-    }
-    if (r2Response.ETag) {
-      headers["ETag"] = r2Response.ETag;
-    }
-    if (r2Response.LastModified) {
-      headers["Last-Modified"] = r2Response.LastModified.toUTCString();
-    }
-
-    // Prevent browser from caching the video at public proxies
-    headers["Cache-Control"] = "private, no-store";
-
-    res.writeHead(statusCode, headers);
-
-    // ── 5. Pipe R2 → browser (memory-efficient streaming) ────
-    const r2Stream = r2Response.Body as Readable;
-
-    // If the client disconnects mid-stream, destroy the R2 stream
-    // to free up sockets and stop transferring data.
-    req.on("close", () => {
-      if (r2Stream && typeof r2Stream.destroy === "function") {
-        r2Stream.destroy();
-      }
     });
 
-    r2Stream.pipe(res);
+    const preSignedUrl = await getSignedUrl(r2, command, {
+      expiresIn: 900, // 15 minutes
+    });
+
+    // ── 4. Redirect browser to R2 ───────────────────────────
+    res.redirect(302, preSignedUrl);
   } catch (error: any) {
     console.error("[getLessonStream] Error:", error);
 

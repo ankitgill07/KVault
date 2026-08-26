@@ -1,7 +1,7 @@
 // src/models/User.model.ts
 
 import mongoose, { Document, Schema, Model } from "mongoose";
-import bcrypt from "bcrypt";
+import bcryptjs from "bcryptjs";
 import type { IUser } from "../interfaces/interfaces.js";
 import { AuthProvider, UserRole } from "../types/type.js";
 
@@ -171,8 +171,8 @@ UserSchema.pre<IUser>("save", async function () {
   // Only hash if password field was modified
   if (!this.isModified("password") || !this.password) return;
 
-  const salt = await bcrypt.genSalt(12);
-  this.password = await bcrypt.hash(this.password, salt);
+  const salt = await bcryptjs.genSalt(12);
+  this.password = await bcryptjs.hash(this.password, salt);
 });
 // ─── Instance Methods ─────────────────────────────────────────────────────────
 
@@ -180,7 +180,7 @@ UserSchema.methods.comparePassword = async function (
   candidatePassword: string,
 ): Promise<boolean> {
   if (!this.password) return false;
-  return bcrypt.compare(candidatePassword, this.password);
+  return bcryptjs.compare(candidatePassword, this.password);
 };
 
 UserSchema.methods.getFullName = function (): string {

@@ -1,5 +1,4 @@
 import { string, z } from "zod";
-import bcrypt from "bcrypt";
 import Otp from "../models/otpModel.js";
 import { type OAuth2Client } from "google-auth-library";
 import { UserRole } from "../types/type.js";
